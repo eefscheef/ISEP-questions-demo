@@ -1,4 +1,14 @@
-assessments: 
+assessment-options:
   - "Senior dev Java"
   - "Junior dev .NET"
   - "Rust zealot"﻿
+
+question-options:
+  - "MultipleChoice"
+  - "Open"
+  - "Coding"
+
+tag-options:
+  - "Frontend Developer"
+  - "Backend Developer"
+  - "Developer"
