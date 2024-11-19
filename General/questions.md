@@ -1,5 +1,4 @@
-
----
+***
 <!-- Automatically generated ID for database reference. Do not modify!-->
 <!-- id: unique-question-id-12345!-->
 type: multiple-choice
@@ -15,9 +14,8 @@ options:
 - [x] A stack is LIFO, a queue is FIFO.
 - [ ] Both are FIFO.
 - [ ] Both are LIFO.
----
-
----
+***
+***
 <!-- Automatically generated ID for database reference. Do not modify!-->
 <!-- id: unique-question-id-35842!-->
 
@@ -29,6 +27,4 @@ tags:
   - Reee
 
 description: What is the difference between a stack and a queue?
-
----
-
+***
