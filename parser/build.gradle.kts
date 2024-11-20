@@ -1,5 +1,6 @@
 plugins {
     kotlin("jvm") version "2.0.0"
+    application
 }
 
 group = "ut.isep"
@@ -23,4 +24,12 @@ tasks.test {
 }
 kotlin {
     jvmToolchain(21)
+}
+
+application {
+    mainClass.set("ut.isep.MainKt")
+}
+
+tasks.named<JavaExec>("run") {
+    workingDir = file("../")
 }
