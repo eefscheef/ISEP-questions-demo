@@ -1,5 +1,5 @@
 ---
-id: unique-question-id-12345 #Automatically generated ID for  database reference, do not modify!
+id: unique-question-id-12345 #Automatically generated ID for database reference, do not modify!
 type: multiple-choice
 tags:
   - Frontend Developer

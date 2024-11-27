@@ -36,52 +36,58 @@ REPOSITORY_ROOT
 └── README.md
 ```
 
-Example file formatting (MultipleChoice / Open) of `questions.md`:
+Example file formatting of (multiple-choice question) `your-question-name.md`:
 ```markdown
-***
-<!-- Automatically generated ID for database reference. Do not modify!-->
-<!-- id: unique-question-id-12345!-->
-type: MultipleChoice
-
+---
+type: multiple-choice
 tags:
   - Frontend Developer
   - Backend Developer
+---
+What is the difference between a stack and a queue?
 
-description: What is the difference between a stack and a queue?
-
-options:
 - [ ] A stack is FIFO, a queue is LIFO.
 - [x] A stack is LIFO, a queue is FIFO.
 - [ ] Both are FIFO.
 - [ ] Both are LIFO.
-***
-***
-<!-- Automatically generated ID for database reference. Do not modify!-->
-<!-- id: unique-question-id-35842!-->
-
-type: Open
-
-tags: 
-  - Deezend 
-  - developer
-  - Reee
-
-description: What is the difference between a stack and a queue?
-***
+```
+Example file formatting (open question) of `your-question-name.md`:
+```markdown
+---
+type: open
+tags:
+- Deezend
+- developer
+- Reee
+---
+What is the difference between a stack and a queue?
 ```
 
-Example file formatting (Coding) of `question.md`:
+Example file formatting (coding question) of `your-question-name.md`:
 ```markdown
-***
-<!-- Automatically generated ID for database reference. Do not modify!-->
-<!-- id: unique-question-id-247462!-->
+---
+id: unique-question-id-247462  #Automatically generated ID for  database reference, do not modify!
 type: Coding
 
 tags:
   - Frontend Developer
-
+---
 description: Improve the following code file?
 
 ... TODO: add the right information
-***
+```
+
+Note that after successful transfer of the questions to the database, and ID is injected into the frontmatter portion of 
+the question file. This ID is used as a primary key in the questions database, and should therefore not be modified.
+
+```markdown
+---
+id: unique-question-id-35842 #Automatically generated ID for database reference, do not modify!
+type: open
+tags:
+- Deezend
+- developer
+- Reee
+---
+What is the difference between a stack and a queue?
 ```
