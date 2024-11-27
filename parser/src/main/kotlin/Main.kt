@@ -2,6 +2,7 @@ package ut.isep
 
 import Config
 import Question
+import QuestionParser
 import java.io.File
 
 import com.fasterxml.jackson.databind.ObjectMapper
@@ -21,16 +22,16 @@ fun getQuestionDirectories(rootDir: File): Array<File> {
     } ?: emptyArray()
 }
 
-fun processMarkdownFiles(parser: QuestionParser,
-                         questionDir: File,
-                         questionsByTag: Map<String, MutableList<Question>>) {
+fun processMarkdownFilesInDir(parser: QuestionParser,
+                              questionDir: File,
+                              questionsByTag: Map<String, MutableList<Question>>) {
     val mdFiles = questionDir.listFiles { file -> file.extension == "md" } ?: emptyArray()
     println("Topic: ${questionDir.name}")
 
-    val allQuestions: List<Question> = mdFiles.flatMap { mdFile ->
+    val allQuestions: List<Question> = mdFiles.map { mdFile ->
         println("Questions in ${mdFile.name}:")
         val content = mdFile.readText()
-        parser.parseQuestions(content)
+        parser.parseQuestion(content)
     }
     
     for (question in allQuestions) {
@@ -46,13 +47,13 @@ fun processMarkdownFiles(parser: QuestionParser,
 
 fun main() {
     val config = parseConfig("config.yaml")
-    val questionsByTag: Map<String, MutableList<Question>> = config.tagOptions.associateWith { mutableListOf() }
+    val tagToQuestions: Map<String, MutableList<Question>> = config.tagOptions.associateWith { mutableListOf() }
 
     val questionDirs = getQuestionDirectories(File("."))
 
     val parser = QuestionParser()
 
     questionDirs.forEach { questionDir ->
-        processMarkdownFiles(parser, questionDir, questionsByTag)
+        processMarkdownFilesInDir(parser, questionDir, tagToQuestions)
     }
 }

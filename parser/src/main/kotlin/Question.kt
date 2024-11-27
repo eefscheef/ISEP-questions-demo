@@ -5,24 +5,35 @@ sealed class Question {
     abstract val description: String
 }
 
-enum class QuestionType {
-    MULTIPLE_CHOICE, OPEN
+enum class QuestionType(val type: String) {
+    MULTIPLE_CHOICE("multiple-choice"),
+    OPEN("open");
+
+    companion object {
+        fun fromString(type: String): QuestionType {
+            return entries.find { it.type == type }
+                ?: throw IllegalArgumentException("Unknown type: $type")
+        }
+    }
 }
+
 
 data class MultipleChoiceQuestion(
     override val id: String?,
-    override val type: QuestionType = QuestionType.MULTIPLE_CHOICE,
     override val tags: List<String>,
     override val description: String,
     val options: List<Option> // List of options for the multiple-choice question
-) : Question()
+) : Question() {
+    override val type: QuestionType = QuestionType.MULTIPLE_CHOICE
+}
 
 data class OpenQuestion(
     override val id: String?,
-    override val type: QuestionType = QuestionType.OPEN,
     override val tags: List<String>,
     override val description: String
-) : Question()
+) : Question() {
+    override val type: QuestionType = QuestionType.OPEN
+}
 
 data class Option(
     val text: String, // Option text
