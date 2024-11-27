@@ -35,20 +35,23 @@ class QuestionParser {
 
     fun parseMultipleChoiceQuestion(body: String, metadata: Frontmatter): MultipleChoiceQuestion {
         val descriptionRegex = """^(.*?)(?=\n- |\$)""".toRegex(RegexOption.DOT_MATCHES_ALL)
-        val description = descriptionRegex.find(body)?.groups?.get(1)?.value?.trim() ?: ""
+        val optionsRegex = """-\s*\[([xX ])]\s*(.*?)\s*$""".toRegex(RegexOption.MULTILINE)
 
+        // Extract description using regex and default to an empty string if not found
+        val description = descriptionRegex.find(body)?.groupValues?.getOrNull(1)?.trim().orEmpty()
 
-        val optionsRegex = """-\s*
-
-\[([x ])]\s*(.*?)\s*$""".toRegex()
-        val options = optionsRegex.findAll(body).map {
+        // Extract options from the body
+        val options = optionsRegex.findAll(body).map { matchResult ->
+            val (isChecked, text) = matchResult.destructured
             Option(
-                text = it.groups[2]?.value?.trim() ?: "",
-                isCorrect = it.groups[1]?.value == "x"
+                text = text.trim(),
+                isCorrect = isChecked.equals("x", ignoreCase = true)
             )
         }.toList()
+
+        // Return the parsed question
         return MultipleChoiceQuestion(
-            id = null, // Assuming IDs are not in frontmatter
+            id = metadata.id,
             tags = metadata.tags,
             description = description,
             options = options
