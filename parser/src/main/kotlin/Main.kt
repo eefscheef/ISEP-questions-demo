@@ -1,34 +1,58 @@
 package ut.isep
 
+import Config
+import Question
 import java.io.File
 
-fun main() {
-    val rootDir = File(".") // Parent directory of `parser`
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
 
-    // Filter topic directories: skip `parser`
-    val topicDirs = rootDir.listFiles {
+
+fun parseConfig(filePath: String): Config {
+    val mapper = ObjectMapper(YAMLFactory())
+    return mapper.readValue(File(filePath), Config::class.java)
+}
+
+fun getQuestionDirectories(rootDir: File): Array<File> {
+    return rootDir.listFiles {
         file -> file.isDirectory &&
             file.name != "parser" &&
             !file.name.startsWith(".")
     } ?: emptyArray()
+}
+
+fun processMarkdownFiles(parser: QuestionParser,
+                         questionDir: File,
+                         questionsByTag: Map<String, MutableList<Question>>) {
+    val mdFiles = questionDir.listFiles { file -> file.extension == "md" } ?: emptyArray()
+    println("Topic: ${questionDir.name}")
+
+    val allQuestions: List<Question> = mdFiles.flatMap { mdFile ->
+        println("Questions in ${mdFile.name}:")
+        val content = mdFile.readText()
+        parser.parseQuestions(content)
+    }
+    
+    for (question in allQuestions) {
+            println(question)
+            question.tags.forEach {tag ->
+                questionsByTag.get(tag)?.add(question) ?:
+                throw Exception("Unknown tag provided: ${tag} in question ${question}")
+            }
+        }
+    println("=".repeat(50)) // Separator for readability
+}
+
+
+fun main() {
+    val config = parseConfig("config.yaml")
+    val questionsByTag: Map<String, MutableList<Question>> = config.tagOptions.associateWith { mutableListOf() }
+
+    val questionDirs = getQuestionDirectories(File("."))
 
     val parser = QuestionParser()
 
-    // Process each topic directory
-    for (topicDir in topicDirs) {
-        val topicName = topicDir.name
-        val mdFiles = topicDir.listFiles { file -> file.extension == "md" } ?: emptyArray()
-
-        println("Topic: $topicName")
-        for (mdFile in mdFiles) {
-            val content = mdFile.readText()
-            val questions = parser.parseQuestions(content)
-
-            println("Questions in ${mdFile.name}:")
-            for (question in questions) {
-                println(question)
-            }
-        }
-        println("=".repeat(50)) // Separator for readability
+    questionDirs.forEach { questionDir ->
+        processMarkdownFiles(parser, questionDir, questionsByTag)
     }
 }
