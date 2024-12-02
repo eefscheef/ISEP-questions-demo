@@ -1,5 +1,5 @@
 plugins {
-    kotlin("jvm") version "2.0.0"
+    kotlin("jvm")
     application
 }
 
@@ -14,6 +14,7 @@ dependencies {
     implementation("com.fasterxml.jackson.core:jackson-databind:2.18.1")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.18.1")
     implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.18.1")
+    implementation(project(":shared-models"))
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.11.3")
     testImplementation("org.junit.jupiter:junit-jupiter-engine:5.11.3")
     testImplementation("org.junit.jupiter:junit-jupiter-params:5.11.3")

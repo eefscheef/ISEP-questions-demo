@@ -1,0 +1,3 @@
+[submodule "uploader/shared-models"]
+	path = uploader/shared-models
+	url = https://github.com/eefscheef/ISEP-shared-entities.git

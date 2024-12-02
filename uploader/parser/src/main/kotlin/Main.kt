@@ -17,7 +17,7 @@ fun parseConfig(filePath: String): Config {
 fun getQuestionDirectories(rootDir: File): Array<File> {
     return rootDir.listFiles {
         file -> file.isDirectory &&
-            file.name != "parser" &&
+            file.name != "uploader" &&
             !file.name.startsWith(".")
     } ?: emptyArray()
 }
@@ -46,10 +46,10 @@ fun processMarkdownFilesInDir(parser: QuestionParser,
 
 
 fun main() {
-    val config = parseConfig("config.yaml")
+    val config = parseConfig("../config.yaml")
     val tagToQuestions: Map<String, MutableList<Question>> = config.tagOptions.associateWith { mutableListOf() }
 
-    val questionDirs = getQuestionDirectories(File("."))
+    val questionDirs = getQuestionDirectories(File(".."))
 
     val parser = QuestionParser()
 
