@@ -1,7 +1,7 @@
 package ut.isep
 
 import Config
-import Question
+import question.Question
 import QuestionParser
 import java.io.File
 

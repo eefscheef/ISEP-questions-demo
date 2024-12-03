@@ -1,7 +1,7 @@
 package ut.isep
 
-import MultipleChoiceQuestion
-import OpenQuestion
+import question.MultipleChoiceQuestion
+import question.OpenQuestion
 import QuestionParser
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
