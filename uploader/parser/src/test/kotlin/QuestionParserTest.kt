@@ -1,5 +1,6 @@
 package ut.isep
 
+import Config
 import question.MultipleChoiceQuestion
 import question.OpenQuestion
 import QuestionParser
@@ -9,7 +10,10 @@ import kotlin.test.assertTrue
 
 class QuestionParserTest {
 
-    private val parser = QuestionParser()
+    private val parser = QuestionParser(Config(
+        tagOptions = listOf("Frontend Developer", "Backend Developer", "System Design", "Deezveloper"),
+        questionOptions = listOf("multiple-choice", "open")
+    ))
 
     @Test
     fun `test parsing single answer multiple-choice question`() {
@@ -72,9 +76,7 @@ class QuestionParserTest {
             id: unique-question-id-35842 #Automatically generated ID for  database reference, do not modify!
             type: open
             tags: 
-              - Deezend 
-              - developer
-              - Reee
+              - Deezveloper
             ---
             What is the difference between a stack and a queue?
         """.trimIndent()
