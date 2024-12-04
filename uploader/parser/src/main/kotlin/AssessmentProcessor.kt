@@ -52,14 +52,6 @@ class AssessmentProcessor(val rootDir: File, val configFile: File) {
         )
     }
 
-    fun printQuestions(questions: List<Question>) {
-        questions.forEach { question ->
-            println(question)
-        }
-        println("=".repeat(50))
-    }
-
-
     fun process(): List<Assessment> {
         val questionDirs = getQuestionDirectories()
         val parser = QuestionParser(config)
