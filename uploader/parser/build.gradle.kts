@@ -33,5 +33,5 @@ application {
 }
 
 tasks.named<JavaExec>("run") {
-    workingDir = file("../")
+    workingDir = file("../..")
 }
