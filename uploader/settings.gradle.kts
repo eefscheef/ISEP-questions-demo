@@ -3,5 +3,5 @@ plugins {
 }
 rootProject.name = "uploader"
 include("parser")
-include("shared-models")
+include("shared-entities")
 
