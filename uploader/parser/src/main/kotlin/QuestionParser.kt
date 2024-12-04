@@ -5,7 +5,7 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
 import com.fasterxml.jackson.module.kotlin.readValue
 import question.*
 
-class QuestionParser {
+class QuestionParser(val config: Config) {
 
     data class Frontmatter @JsonCreator constructor(
         @JsonProperty("id") val id: String?,
@@ -27,6 +27,9 @@ class QuestionParser {
 
         // Parse the frontmatter using Jackson
         val metadata: Frontmatter = objectMapper.readValue(frontmatter)
+        metadata.tags.forEach { tag ->
+            require(tag in config.tagOptions) {"Invalid tag provided: $tag is not present in config file"}
+        }
         val type: QuestionType = QuestionType.fromString(metadata.type)
         return when (type) {
             QuestionType.MULTIPLE_CHOICE -> parseMultipleChoiceQuestion(body, metadata)
@@ -44,7 +47,7 @@ class QuestionParser {
         // Extract options from the body
         val options = optionsRegex.findAll(body).map { matchResult ->
             val (isChecked, text) = matchResult.destructured
-            Option(
+            MultipleChoiceQuestion.Option(
                 text = text.trim(),
                 isCorrect = isChecked.equals("x", ignoreCase = true)
             )

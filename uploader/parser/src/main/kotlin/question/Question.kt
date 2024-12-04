@@ -1,10 +1,14 @@
 package question
 
-sealed class Question {
-    abstract val id: String? // Unique identifier for the question, can be null for new questions
-    abstract val type: QuestionType
-    abstract val tags: List<String>
-    abstract val description: String
+import ut.isep.management.model.entity.Assignment
+
+sealed interface Question {
+    val id: String? // Unique identifier for the question, can be null for new questions
+    val type: QuestionType
+    val tags: List<String>
+    val description: String
+
+    fun toEntity(): Assignment
 }
 
 enum class QuestionType(val type: String) {
