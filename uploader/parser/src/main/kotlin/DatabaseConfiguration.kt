@@ -24,7 +24,9 @@ class DatabaseConfiguration {
 //            setProperty("hibernate.dialect", "org.hibernate.dialect.PostgreSQLDialect")
             setProperty("hibernate.hbm2ddl.auto", "update")
             setProperty("hibernate.show_sql", "true")
-            // Add your entity classes here
+            setProperty("hibernate.physical_naming_strategy", "org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl")
+            setProperty("hibernate.implicit_naming_strategy", "org.hibernate.boot.model.naming.ImplicitNamingStrategyJpaCompliantImpl")
+
             addAnnotatedClass(Applicant::class.java)
             addAnnotatedClass(Assessment::class.java)
             addAnnotatedClass(Assignment::class.java)
