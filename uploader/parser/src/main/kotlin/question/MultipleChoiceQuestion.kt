@@ -17,7 +17,6 @@ data class MultipleChoiceQuestion(
 
     override fun toEntity(): AssignmentMultipleChoice {
         return AssignmentMultipleChoice(
-            id = this.id?.toLong() ?: 0,
             description = this.description,
             options = this.options.map {it.text},
             isMultipleAnswers = this.options.count {it.isCorrect} > 1

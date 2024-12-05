@@ -10,7 +10,6 @@ data class OpenQuestion(
     override val type: QuestionType = QuestionType.OPEN
     override fun toEntity(): AssignmentOpen {
         return AssignmentOpen(
-            id = this.id?.toLong() ?: 0,
             description = this.description
         )
     }
