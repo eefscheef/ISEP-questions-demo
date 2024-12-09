@@ -31,6 +31,7 @@ class AssessmentProcessor(val rootDir: File, val configFile: File) {
         parser: QuestionParser,
         questionDir: File
     ): Map<String, Section> {
+        val topic = questionDir.name
         val mdFiles = questionDir.listFiles { file -> file.extension == "md" } ?: emptyArray()
         val questions: List<Question> = mdFiles.map { mdFile ->
             parser.parseQuestion(mdFile.readText())
@@ -39,13 +40,14 @@ class AssessmentProcessor(val rootDir: File, val configFile: File) {
             question.tags.map { tag -> tag to question }
         }.groupBy({ it.first }, { it.second })
 
-        return questionsByTag.mapValues { (tag, questions) ->
-            questions.toSection()
+        return questionsByTag.mapValues { (_, questions) ->
+            questions.toSection(topic)
         }
     }
 
-    private fun List<Question>.toSection(): Section {
+    private fun List<Question>.toSection(topic: String): Section {
         return Section(
+            title = topic,
             assignments = this.map { question ->
                 question.toEntity()
             }
@@ -62,7 +64,7 @@ class AssessmentProcessor(val rootDir: File, val configFile: File) {
         .groupBy({ it.key }, { it.value }) // Map<String, List<Section>>
 
         return tagsToSections.map {(tag, sections) ->
-            val assessment = Assessment(id = 0, sections = sections.toMutableList())
+            val assessment = Assessment(id = 0, tag = tag, sections = sections.toMutableList())
             assessment.sections.forEach {
                 section -> section.assessment = assessment
             }
