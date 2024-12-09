@@ -30,10 +30,16 @@ class DatabaseConfiguration {
             addAnnotatedClass(Applicant::class.java)
             addAnnotatedClass(Assessment::class.java)
             addAnnotatedClass(Assignment::class.java)
-            addAnnotatedClass(AssignmentOpen::class.java)
+            addAnnotatedClass(AssignmentCoding::class.java)
             addAnnotatedClass(AssignmentMultipleChoice::class.java)
+            addAnnotatedClass(AssignmentOpen::class.java)
             addAnnotatedClass(Invite::class.java)
             addAnnotatedClass(Section::class.java)
+            addAnnotatedClass(SolvedAssignment::class.java)
+            addAnnotatedClass(SolvedAssignmentCoding::class.java)
+            addAnnotatedClass(SolvedAssignmentMultipleChoice::class.java)
+            addAnnotatedClass(SolvedAssignmentOpen::class.java)
+
         }
 
         // Build ServiceRegistry with the DataSource
