@@ -18,8 +18,7 @@ data class MultipleChoiceQuestion(
     override fun toEntity(): AssignmentMultipleChoice {
         return AssignmentMultipleChoice(
             description = this.description,
-            options = this.options.map {it.text},
-            isMultipleAnswers = this.options.count {it.isCorrect} > 1
+            optionToSolution = options.associate {it.text to it.isCorrect},
         )
     }
 }
