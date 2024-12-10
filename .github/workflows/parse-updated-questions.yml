@@ -28,5 +28,3 @@ jobs:
           cd uploader
           ./gradlew build
           ./gradlew run --args="validate $files"
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}

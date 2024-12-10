@@ -32,6 +32,8 @@ jobs:
           cd uploader
           ./gradlew build
           ./gradlew run --args="upload $files"
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
       - name: Check for File Changes
         id: check-diff
