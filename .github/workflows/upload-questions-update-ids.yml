@@ -29,6 +29,7 @@ jobs:
 
       - name: Build and Run Parser
         run: |
+          cd uploader
           ./gradlew build
           ./gradlew run --args="upload $files"
 
