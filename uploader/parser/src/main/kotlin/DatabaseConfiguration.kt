@@ -9,7 +9,8 @@ import ut.isep.management.model.entity.*
 class DatabaseConfiguration {
     fun createDataSource(): DataSource {
         val config = HikariConfig().apply {
-            jdbcUrl = "jdbc:postgresql://isep-test-database.postgres.database.azure.com:5432/postgres?sslmode=require"
+            jdbcUrl = System.getenv("JDBC_URL")
+                ?: "jdbc:postgresql://isep-test-database.postgres.database.azure.com:5432/postgres?sslmode=require" //TODO remove once test with testcontainers added for local testing
             driverClassName = "org.postgresql.Driver"
             username = System.getenv("DB_USERNAME")
             password = System.getenv("DB_PASSWORD")
@@ -19,9 +20,7 @@ class DatabaseConfiguration {
     }
 
     fun createSessionFactory(dataSource: DataSource): SessionFactory {
-        // Create Hibernate configuration
         val configuration = Configuration().apply {
-//            setProperty("hibernate.dialect", "org.hibernate.dialect.PostgreSQLDialect")
             setProperty("hibernate.hbm2ddl.auto", "update")
             setProperty("hibernate.show_sql", "true")
             setProperty("hibernate.physical_naming_strategy", "org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl")
