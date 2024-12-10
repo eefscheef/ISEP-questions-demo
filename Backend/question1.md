@@ -6,7 +6,7 @@ tags:
 - System Design
 ---
 
-Why does the monolithic architecture not eat the microservice oriented architecture?
+Why does the monolithic architecture not simply eat the microservice oriented architecture? Is it stupid?
 
 - [ ] Monolithic architecture is more scalable than microservices.
 - [x] Microservices architecture allows independent scaling of components, while monolithic does not.

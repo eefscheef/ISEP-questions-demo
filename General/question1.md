@@ -2,7 +2,6 @@
 id: 12345 #Automatically generated ID for database reference, do not modify!
 type: multiple-choice
 tags:
-  - Frontend Developer
   - Backend Developer
 ---
 What is the difference between a stack and a queue?

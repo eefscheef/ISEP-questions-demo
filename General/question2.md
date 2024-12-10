@@ -2,8 +2,6 @@
 id: 35842 #Automatically generated ID for database reference, do not modify!
 type: open
 tags: 
-  - Deezend 
-  - developer
-  - Reee
+  - System Design
 ---
-What is the difference between a stack and a queue?
+How does it feel to chew 5gum? 
