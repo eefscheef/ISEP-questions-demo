@@ -1,0 +1,46 @@
+name: Update IDs for Changed Files
+
+on:
+  push:
+    branches:
+      - main # Adjust as needed for your workflow
+
+jobs:
+  update-ids:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Check out the repository
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0 # Ensure we fetch the full history for correct Git operations
+
+    - name: Set up JDK 11
+      uses: actions/setup-java@v3
+      with:
+        java-version: '11'
+
+    - name: Identify Changed Files
+      id: changed-files
+      run: |
+        git diff --name-only HEAD^ HEAD > changed_files.txt
+        echo "::set-output name=files::$(cat changed_files.txt | tr '\n' ' ')"
+
+    - name: Build and Run Parser
+      run: |
+        ./gradlew build
+        ./gradlew run --args="update-ids $(cat changed_files.txt)"
+
+    - name: Check for File Changes
+      id: check-diff
+      run: |
+        git diff --quiet || echo "Files have changed" # Exit with success even if changes are found
+
+    - name: Commit and Push Changes
+      if: steps.check-diff.outputs['changed'] == 'Files have changed'
+      run: |
+        git config user.name "GitHub Actions"
+        git config user.email "actions@github.com"
+        git add .
+        git commit -m "Update IDs for changed files"
+        git push
