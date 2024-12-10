@@ -4,7 +4,7 @@ import DatabaseConfiguration
 import DatabaseManager
 import java.io.File
 
-fun main() {
+fun main(args: Array<String>) {
     val databaseConfig = DatabaseConfiguration()
     val dataSource = databaseConfig.createDataSource()
     val sessionFactory = databaseConfig.createSessionFactory(dataSource)
