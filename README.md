@@ -13,9 +13,10 @@ Example repository structure:
 ```txt
 REPOSITORY_ROOT
 ├── General
-│   └── questions.md
+│   ├── question1.md
+│   └── another-question.md
 ├── Database
-│   ├── questions.md
+│   ├── questionX.md
 │   └── code
 │       ├── SQL
 │       │   ├── question1
