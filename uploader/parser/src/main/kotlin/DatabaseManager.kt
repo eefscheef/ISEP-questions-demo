@@ -29,8 +29,6 @@ class DatabaseManager(private val sessionFactory: SessionFactory) {
                 session.beginTransaction()
 
                 // Raw SQL queries for truncating tables
-                session.createNativeMutationQuery("TRUNCATE TABLE invite CASCADE").executeUpdate()
-                session.createNativeMutationQuery("TRUNCATE TABLE applicant CASCADE").executeUpdate()
                 session.createNativeMutationQuery("TRUNCATE TABLE assessment CASCADE").executeUpdate()
                 session.createNativeMutationQuery("TRUNCATE TABLE section CASCADE").executeUpdate()
                 session.createNativeMutationQuery("TRUNCATE TABLE assignment CASCADE").executeUpdate()
