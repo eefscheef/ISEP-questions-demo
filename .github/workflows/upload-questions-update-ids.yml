@@ -24,7 +24,7 @@ jobs:
       - name: Identify Changed Files
         id: changed-files
         run: |
-          git diff --name-only HEAD^ HEAD > changed_files.txt
+          git diff --name-only HEAD^ HEAD questions > changed_files.txt
           echo "files=$(cat changed_files.txt | tr '\n' ' ')" >> $GITHUB_ENV
 
       - name: Build and Run Parser
