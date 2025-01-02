@@ -5,19 +5,11 @@ import question.Question
 import QuestionParser
 import java.io.File
 
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
 import ut.isep.management.model.entity.Assessment
 import ut.isep.management.model.entity.Section
 
-class AssessmentProcessor(val rootDir: File, val configFile: File) {
+class AssessmentProcessor(val rootDir: File, val config: Config) {
 
-    val config: Config = parseConfig()
-
-    private fun parseConfig(): Config {
-        val mapper = ObjectMapper(YAMLFactory())
-        return mapper.readValue(configFile, Config::class.java)
-    }
 
     private fun getQuestionDirectories(): Array<File> {
         return rootDir.listFiles { file ->

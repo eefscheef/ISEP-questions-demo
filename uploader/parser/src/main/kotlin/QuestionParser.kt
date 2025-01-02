@@ -15,27 +15,35 @@ class QuestionParser(val config: Config) {
 
     private val objectMapper = ObjectMapper(YAMLFactory())
 
-    fun parseQuestion(input: String): Question {
-        // Split the input into frontmatter and body sections
-        val parts = input.split("---").map { it.trim() }.filter { it.isNotEmpty() }
+    /**
+     * @throws QuestionParsingException
+     */
+    fun parseQuestion(input: String): Question{
+        try {
+            val parts = input.split("---").map { it.trim() }.filter { it.isNotEmpty() }
+            if (parts.size != 2) {
+                throw QuestionParsingException("Invalid question format. Must contain frontmatter and body.")
+            }
 
-        // Ensure we have both frontmatter and body
-        require(parts.size == 2) { "Invalid question format. Must contain frontmatter and body." }
+            val frontmatter = parts[0]
+            val body = parts[1]
 
-        val frontmatter = parts[0]
-        val body = parts[1]
-
-        // Parse the frontmatter using Jackson
-        val metadata: Frontmatter = objectMapper.readValue(frontmatter)
-        metadata.tags.forEach { tag ->
-            require(tag in config.tagOptions) {"Invalid tag provided: $tag is not present in config file"}
-        }
-        val type: QuestionType = QuestionType.fromString(metadata.type)
-        return when (type) {
-            QuestionType.MULTIPLE_CHOICE -> parseMultipleChoiceQuestion(body, metadata)
-            QuestionType.OPEN -> parseOpenQuestion(body, metadata)
+            val metadata: Frontmatter = objectMapper.readValue(frontmatter)
+            metadata.tags.forEach { tag ->
+                if (tag !in config.tagOptions) {
+                    throw QuestionParsingException("Invalid tag provided: $tag is not present in config file")
+                }
+            }
+            val type: QuestionType = QuestionType.fromString(metadata.type)
+            return when (type) {
+                QuestionType.MULTIPLE_CHOICE -> parseMultipleChoiceQuestion(body, metadata)
+                QuestionType.OPEN -> parseOpenQuestion(body, metadata)
+            }
+        } catch (e: Exception) {
+            throw QuestionParsingException("Failed to parse question.", "Input: ${input.take(100)}\nError: ${e.message}")
         }
     }
+
 
     fun parseMultipleChoiceQuestion(body: String, metadata: Frontmatter): MultipleChoiceQuestion {
         val descriptionRegex = """^(.*?)(?=\n- |\$)""".toRegex(RegexOption.DOT_MATCHES_ALL)
