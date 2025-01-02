@@ -33,7 +33,7 @@ kotlin {
 }
 
 application {
-    mainClass.set("ut.isep.MainKt")
+    mainClass.set("MainKt")
 }
 
 tasks.named<JavaExec>("run") {
