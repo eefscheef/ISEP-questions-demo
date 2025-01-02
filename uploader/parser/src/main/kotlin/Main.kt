@@ -5,20 +5,19 @@ import java.io.IOException
 import kotlin.system.exitProcess
 
 
-
 const val USAGE = """
 Usage:
   validate [--all] [<file>...]
-  upload [--all] [--deleted] [<file>...] [--added] [<file>...] [--updated] [<file>...]
+  upload [--all] [--deleted <file>...] [--added <file>...] [--updated <file>...]
 
 Options:
   -h --help     Show this screen.
-  --all -a         Validate or upload all questions in the repository (mutually exclusive with <file>...).
+  --all -a      Validate or upload all questions in the repository (mutually exclusive with <file>...).
 
 Commands:
   validate      Validate the specified question files.
   upload        Parse the specified files and upload them to the database.
-  
+
 Arguments:
   <file>... List of files to process. Cannot be used with --all.
 """
@@ -27,44 +26,105 @@ Arguments:
 val config = parseConfig()
 val parser = QuestionParser(config)
 
-private fun printUsageAndExit(status: Int) {
+private fun printUsageAndExit() {
     println(USAGE)
-    exitProcess(status)
-}
-
-
-fun main(args: Array<String>) {
-    if (args.size < 2) {
-        printUsageAndExit(1)
-    }
-    val processEntireRepo = args[1] == "--all" || args[1] == "-a"
-    if (processEntireRepo && args.size != 2) { // Can't provide filenames with --all flag set
-        printUsageAndExit(1)
-    }
-    val command = args[0]
-    val filenames = args.drop(1)
-    when (command) {
-        "help, --help, -h" -> printUsageAndExit(0)
-        "validate" -> if (processEntireRepo) validateAll() else filenames.forEach {parser.parseQuestion(readFile(it))}
-        "upload" -> if (processEntireRepo) uploadAll() else {upload(filenames)}
-        else -> printUsageAndExit(1)
-    }
+    exitProcess(1)
 }
 
 private fun validateAll() {
 
 }
 
-private fun validate (filenames: List<String>) {
-    return
+fun validate(files: List<String>) {
+    files.forEach { file ->
+        try {
+            parser.parseQuestion(readFile(file))
+        } catch (e: QuestionParsingException) {
+            throw FileParsingException("Invalid question", file, e)
+        }
+    }
 }
 
 private fun uploadAll() {
 
 }
 
-private fun upload(filenames: List<String>) {
-    return
+
+fun main(args: Array<String>) {
+    if (args.size < 2) {
+        printUsageAndExit()
+    }
+    val processEntireRepo = args[1] == "--all" || args[1] == "-a"
+    if (processEntireRepo && args.size != 2) { // Can't provide filenames with --all flag set
+        printUsageAndExit()
+    }
+
+    val command = args[0]
+    val arguments = args.drop(1).toMutableList()
+
+    when (command) {
+        "help", "--help", "-h" -> printUsageAndExit()
+        "validate" -> handleValidateCommand(processEntireRepo, arguments)
+        "upload" -> handleUploadCommand(processEntireRepo, arguments)
+        else -> printUsageAndExit()
+    }
+    exitProcess(0)
+}
+
+fun handleValidateCommand(processEntireRepo: Boolean, filenames: List<String>) {
+    if (processEntireRepo) {
+        validateAll()
+    } else {
+        validate(filenames)
+    }
+}
+
+fun handleUploadCommand(processEntireRepo: Boolean, arguments: List<String>) {
+    if (processEntireRepo) {
+        uploadAll()
+    } else {
+        val (deletedFiles, addedFiles, updatedFiles) = parseUploadArguments(arguments)
+        validateUploadArguments(deletedFiles, addedFiles, updatedFiles)
+        upload(deletedFiles, addedFiles, updatedFiles)
+    }
+}
+
+fun parseUploadArguments(arguments: List<String>): Triple<List<String>, List<String>, List<String>> {
+    val deletedFiles = mutableListOf<String>()
+    val addedFiles = mutableListOf<String>()
+    val updatedFiles = mutableListOf<String>()
+
+    var currentList: MutableList<String>? = null
+
+    for (arg in arguments) {
+        when (arg) {
+            "--deleted" -> currentList = deletedFiles
+            "--added" -> currentList = addedFiles
+            "--updated" -> currentList = updatedFiles
+            else -> if (arg.startsWith("--")) {
+                printUsageAndExit()
+            } else {
+                currentList?.add(arg) ?: printUsageAndExit() // No option provided
+            }
+        }
+    }
+
+    return Triple(deletedFiles, addedFiles, updatedFiles)
+}
+
+fun validateUploadArguments(deletedFiles: List<String>, addedFiles: List<String>, updatedFiles: List<String>) {
+    if (deletedFiles.isEmpty() && addedFiles.isEmpty() && updatedFiles.isEmpty()) {
+        println("Error: At least one of --deleted, --added, or --updated must be provided with files.")
+        printUsageAndExit()
+    }
+}
+
+
+fun upload(deletedFiles: List<String>, addedFiles: List<String>, updatedFiles: List<String>) {
+    println("Uploading changes:")
+    if (deletedFiles.isNotEmpty()) println("Deleted files: $deletedFiles")
+    if (addedFiles.isNotEmpty()) println("Added files: $addedFiles")
+    if (updatedFiles.isNotEmpty()) println("Updated files: $updatedFiles")
 }
 
 
@@ -73,20 +133,17 @@ fun parseConfig(): Config {
     return mapper.readValue(File("config.yaml"), Config::class.java)
 }
 
-fun readFile(filename: String): String {
-    val parser = QuestionParser(parseConfig())
-    val file: File = File(filename)
+fun readFile(filePath: String): String {
+    val file = File(filePath)
     if (!file.exists()) {
-        println("$filename: No such file $filename")
-        exitProcess(1)
+        throw FileParsingException("No such file", filePath)
     }
     if (!file.canRead()) {
-        println("$filename: Can't read file $filename, check your permissions")
-        exitProcess(1)
+        throw FileParsingException("Cannot read file", filePath)
     }
-    return try {file.readText()} catch (e: IOException) {
-        println("An I/O error occurred: ${e.message}")
-        e.printStackTrace()
-        exitProcess(1)
+    return try {
+        file.readText()
+    } catch (e: IOException) {
+        throw FileParsingException("An I/O error occurred: ${e.message}", filePath)
     }
 }
