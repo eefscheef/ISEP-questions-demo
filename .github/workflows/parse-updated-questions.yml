@@ -2,6 +2,10 @@ name: Validate Parser on Pull Request
 
 on:
   pull_request:
+    types:
+      - opened
+      - synchronize  # Triggered when new commits are pushed to the PR
+      - reopened
     branches:
       - main
 
