@@ -22,7 +22,8 @@ jobs:
         id: changed-files
         run: |
           git fetch origin main
-          echo "files=$(git diff --name-only origin/main questions | tr '\n' ' ')" >> $GITHUB_ENV
+          # Get only added or modified files in the questions directory
+          echo "files=$(git diff --diff-filter=AM --name-only origin/main questions | tr '\n' ' ')" >> $GITHUB_ENV
 
       - name: Build and Run Parser
         run: |
