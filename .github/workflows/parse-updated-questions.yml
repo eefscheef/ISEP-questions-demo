@@ -2,10 +2,6 @@ name: Validate Parser on Pull Request
 
 on:
   pull_request:
-    types:
-      - opened
-      - synchronize  # Triggered when new commits are pushed to the PR
-      - reopened
     branches:
       - main
 
@@ -23,11 +19,13 @@ jobs:
           distribution: 'temurin'
           cache: 'gradle'
 
+      - name: Set executable permission for Gradle wrapper
+        run: chmod +x uploader/gradlew
+
       - name: Get changed files
         id: changed-files
         run: |
           git fetch origin main
-          # Get only added or modified files in the questions directory
           echo "files=$(git diff --diff-filter=AM --name-only origin/main questions | tr '\n' ' ')" >> $GITHUB_ENV
 
       - name: Build and Run Parser
@@ -35,3 +33,4 @@ jobs:
           cd uploader
           ./gradlew build
           ./gradlew run --args="validate $files"
+
