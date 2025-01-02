@@ -1,5 +1,6 @@
 package question
 
+import QuestionParsingException
 import ut.isep.management.model.entity.Assignment
 
 sealed interface Question {
@@ -18,7 +19,7 @@ enum class QuestionType(val type: String) {
     companion object {
         fun fromString(type: String): QuestionType {
             return entries.find { it.type == type }
-                ?: throw IllegalArgumentException("Unknown type: $type")
+                ?: throw QuestionParsingException("Unknown question type: $type")
         }
     }
 }
