@@ -9,7 +9,7 @@ import java.io.File
 import java.io.IOException
 
 
-class QuestionParser(private val configFile: File) {
+class QuestionParser(private val config: Config) {
 
     data class Frontmatter @JsonCreator constructor(
         @JsonProperty("id") val id: String?,
@@ -18,11 +18,6 @@ class QuestionParser(private val configFile: File) {
     )
 
     private val objectMapper = ObjectMapper(YAMLFactory())
-    private val config: Config = parseConfig()
-
-    private fun parseConfig(): Config {
-        return objectMapper.readValue(configFile, Config::class.java)
-    }
 
     fun parseFile(file: File): Question {
         if (!file.exists()) {

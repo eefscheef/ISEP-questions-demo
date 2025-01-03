@@ -1,3 +1,5 @@
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
 import java.io.File
 import kotlin.system.exitProcess
 
@@ -21,7 +23,14 @@ Arguments:
 const val CONFIG_FILEPATH = "config.yaml"
 
 val configFile = File(CONFIG_FILEPATH)
-val parser = QuestionParser(configFile)
+
+private val config: Config = parseConfig()
+
+private fun parseConfig(): Config {
+    return ObjectMapper(YAMLFactory()).readValue(configFile, Config::class.java)
+}
+
+val parser = QuestionParser(config)
 
 private fun printUsageAndExit() {
     println(USAGE)
