@@ -9,7 +9,11 @@ sealed interface Question {
     val tags: List<String>
     val description: String
 
-    fun toEntity(): Assignment
+    fun toEntity(): Assignment {
+        return id?.let {
+            Assignment(id = it.toLong(), filePath = filePath, assignmentType = type)
+        } ?: Assignment(filePath = filePath, assignmentType = type)
+    }
 }
 
 enum class QuestionType(val type: String) {
