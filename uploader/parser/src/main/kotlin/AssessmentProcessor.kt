@@ -1,15 +1,13 @@
 package ut.isep
 
-import Config
-import question.Question
 import QuestionParser
-import java.io.File
-
+import question.Question
 import ut.isep.management.model.entity.Assessment
 import ut.isep.management.model.entity.AssessmentID
 import ut.isep.management.model.entity.Section
+import java.io.File
 
-class AssessmentProcessor(val rootDir: File, val config: Config) {
+class AssessmentProcessor(private val rootDir: File, private val parser: QuestionParser, private val commitHash: String) {
 
 
     private fun getQuestionDirectories(): Array<File> {
@@ -21,7 +19,6 @@ class AssessmentProcessor(val rootDir: File, val config: Config) {
     }
 
     private fun parseMarkDownFilesInDir(
-        parser: QuestionParser,
         questionDir: File
     ): Map<String, Section> {
         val topic = questionDir.name
@@ -49,17 +46,17 @@ class AssessmentProcessor(val rootDir: File, val config: Config) {
 
     fun process(): List<Assessment> {
         val questionDirs = getQuestionDirectories()
-        val parser = QuestionParser(File("config.yaml"))
         val tagsToSections: Map<String, List<Section>> = questionDirs.map { questionDir ->
-            parseMarkDownFilesInDir(parser, questionDir)
+            parseMarkDownFilesInDir(questionDir)
         }
-        .flatMap { it.entries } // List<String, Section>
-        .groupBy({ it.key }, { it.value }) // Map<String, List<Section>>
+            .flatMap { it.entries } // List<String, Section>
+            .groupBy({ it.key }, { it.value }) // Map<String, List<Section>>
 
-        return tagsToSections.map {(tag, sections) ->
-            val assessment = Assessment(AssessmentID(tag = tag, gitCommitHash = null), sections = sections.toMutableList())
-            assessment.sections.forEach {
-                section -> section.assessment = assessment
+        return tagsToSections.map { (tag, sections) ->
+            val assessment =
+                Assessment(AssessmentID(tag = tag, gitCommitHash = commitHash), sections = sections.toMutableList())
+            assessment.sections.forEach { section ->
+                section.assessment = assessment
             }
             assessment
         }
