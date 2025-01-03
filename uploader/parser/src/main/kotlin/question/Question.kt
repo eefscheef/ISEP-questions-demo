@@ -1,6 +1,5 @@
 package question
 
-import QuestionParsingException
 import ut.isep.management.model.entity.Assignment
 import ut.isep.management.model.entity.AssignmentType
 
@@ -15,17 +14,5 @@ sealed interface Question {
         return id?.let {
             Assignment(id = it.toLong(), filePath = filePath, assignmentType = type)
         } ?: Assignment(filePath = filePath, assignmentType = type)
-    }
-}
-
-enum class QuestionType(val type: String) {
-    MULTIPLE_CHOICE("multiple-choice"),
-    OPEN("open");
-
-    companion object {
-        fun fromString(type: String): QuestionType {
-            return entries.find { it.type == type }
-                ?: throw QuestionParsingException("Unknown question type: $type")
-        }
     }
 }
