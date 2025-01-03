@@ -6,6 +6,7 @@ import QuestionParser
 import java.io.File
 
 import ut.isep.management.model.entity.Assessment
+import ut.isep.management.model.entity.AssessmentID
 import ut.isep.management.model.entity.Section
 
 class AssessmentProcessor(val rootDir: File, val config: Config) {
@@ -26,7 +27,7 @@ class AssessmentProcessor(val rootDir: File, val config: Config) {
         val topic = questionDir.name
         val mdFiles = questionDir.listFiles { file -> file.extension == "md" } ?: emptyArray()
         val questions: List<Question> = mdFiles.map { mdFile ->
-            parser.parseQuestion(mdFile.readText())
+            parser.parseQuestion(mdFile.readText(), mdFile.name)
         }
         val questionsByTag = questions.flatMap { question ->
             question.tags.map { tag -> tag to question }
@@ -48,7 +49,7 @@ class AssessmentProcessor(val rootDir: File, val config: Config) {
 
     fun process(): List<Assessment> {
         val questionDirs = getQuestionDirectories()
-        val parser = QuestionParser(config)
+        val parser = QuestionParser(File("config.yaml"))
         val tagsToSections: Map<String, List<Section>> = questionDirs.map { questionDir ->
             parseMarkDownFilesInDir(parser, questionDir)
         }
@@ -56,7 +57,7 @@ class AssessmentProcessor(val rootDir: File, val config: Config) {
         .groupBy({ it.key }, { it.value }) // Map<String, List<Section>>
 
         return tagsToSections.map {(tag, sections) ->
-            val assessment = Assessment(id = 0, tag = tag, sections = sections.toMutableList())
+            val assessment = Assessment(AssessmentID(tag = tag, gitCommitHash = null), sections = sections.toMutableList())
             assessment.sections.forEach {
                 section -> section.assessment = assessment
             }
