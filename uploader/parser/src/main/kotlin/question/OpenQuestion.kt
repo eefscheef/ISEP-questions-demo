@@ -1,18 +1,13 @@
 package question
 
-import ut.isep.management.model.entity.AssignmentOpen
+import ut.isep.management.model.entity.AssignmentType
 
 data class OpenQuestion(
     override val id: String?,
     override val tags: List<String>,
-    override val description: String
+    override val description: String,
+    override val filePath: String
 ) : Question {
-    override val type: QuestionType = QuestionType.OPEN
-    override fun toEntity(): AssignmentOpen {
-        return AssignmentOpen(
-            description = this.description
-        )
-    }
-
+    override val type: AssignmentType = AssignmentType.OPEN
 }
 
