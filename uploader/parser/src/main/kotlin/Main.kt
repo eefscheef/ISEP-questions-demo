@@ -21,10 +21,10 @@ Commands:
 Arguments:
   <file>... List of files to process. Cannot be used with --all.
 """
+const val CONFIG_FILEPATH = "config.yaml"
 
-
-val config = parseConfig()
-val parser = QuestionParser(config)
+val configFile = File(CONFIG_FILEPATH)
+val parser = QuestionParser(configFile)
 
 private fun printUsageAndExit() {
     println(USAGE)
@@ -36,11 +36,11 @@ private fun validateAll() {
 }
 
 fun validate(files: List<String>) {
-    files.forEach { file ->
+    files.forEach { filename ->
         try {
-            parser.parseQuestion(readFile(file))
+            parser.parseFile(File(filename))
         } catch (e: QuestionParsingException) {
-            throw FileParsingException("Invalid question", file, e)
+            throw FileParsingException("Invalid question file", filename, e)
         }
     }
 }
@@ -128,22 +128,3 @@ fun upload(deletedFiles: List<String>, addedFiles: List<String>, updatedFiles: L
 }
 
 
-fun parseConfig(): Config {
-    val mapper = ObjectMapper(YAMLFactory())
-    return mapper.readValue(File("config.yaml"), Config::class.java)
-}
-
-fun readFile(filePath: String): String {
-    val file = File(filePath)
-    if (!file.exists()) {
-        throw FileParsingException("No such file", filePath)
-    }
-    if (!file.canRead()) {
-        throw FileParsingException("Cannot read file", filePath)
-    }
-    return try {
-        file.readText()
-    } catch (e: IOException) {
-        throw FileParsingException("An I/O error occurred: ${e.message}", filePath)
-    }
-}

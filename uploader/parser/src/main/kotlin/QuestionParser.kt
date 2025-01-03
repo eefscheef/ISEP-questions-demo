@@ -4,8 +4,12 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
 import com.fasterxml.jackson.module.kotlin.readValue
 import question.*
+import ut.isep.management.model.entity.AssignmentType
+import java.io.File
+import java.io.IOException
 
-class QuestionParser(val config: Config) {
+
+class QuestionParser(private val configFile: File) {
 
     data class Frontmatter @JsonCreator constructor(
         @JsonProperty("id") val id: String?,
@@ -14,11 +18,30 @@ class QuestionParser(val config: Config) {
     )
 
     private val objectMapper = ObjectMapper(YAMLFactory())
+    private val config: Config = parseConfig()
+
+    private fun parseConfig(): Config {
+        return objectMapper.readValue(configFile, Config::class.java)
+    }
+
+    fun parseFile(file: File): Question {
+        if (!file.exists()) {
+            throw FileParsingException("No such file", file.name)
+        }
+        if (!file.canRead()) {
+            throw FileParsingException("Cannot read file", file.name)
+        }
+        return try {
+            parseQuestion(file.readText(), file.name)
+        } catch (e: IOException) {
+            throw FileParsingException("An I/O error occurred: ${e.message}", file.name)
+        }
+    }
 
     /**
      * @throws QuestionParsingException
      */
-    fun parseQuestion(input: String): Question{
+    fun parseQuestion(input: String, filePath: String): Question{
         try {
             val parts = input.split("---").map { it.trim() }.filter { it.isNotEmpty() }
             if (parts.size != 2) {
@@ -34,10 +57,11 @@ class QuestionParser(val config: Config) {
                     throw QuestionParsingException("Invalid tag provided: $tag is not present in config file")
                 }
             }
-            val type: QuestionType = QuestionType.fromString(metadata.type)
+            val type: AssignmentType = AssignmentType.fromString(metadata.type)
             return when (type) {
-                QuestionType.MULTIPLE_CHOICE -> parseMultipleChoiceQuestion(body, metadata)
-                QuestionType.OPEN -> parseOpenQuestion(body, metadata)
+                AssignmentType.MULTIPLE_CHOICE -> parseMultipleChoiceQuestion(body, metadata, filePath)
+                AssignmentType.OPEN -> parseOpenQuestion(body, metadata, filePath)
+                AssignmentType.CODING -> TODO()
             }
         } catch (e: Exception) {
             throw QuestionParsingException("Failed to parse question.", "Input: ${input.take(100)}\nError: ${e.message}")
@@ -45,7 +69,7 @@ class QuestionParser(val config: Config) {
     }
 
 
-    fun parseMultipleChoiceQuestion(body: String, metadata: Frontmatter): MultipleChoiceQuestion {
+    fun parseMultipleChoiceQuestion(body: String, metadata: Frontmatter, filePath: String): MultipleChoiceQuestion {
         val descriptionRegex = """^(.*?)(?=\n- |\$)""".toRegex(RegexOption.DOT_MATCHES_ALL)
         val optionsRegex = """-\s*\[([xX ])]\s*(.*?)\s*$""".toRegex(RegexOption.MULTILINE)
 
@@ -66,13 +90,15 @@ class QuestionParser(val config: Config) {
             id = metadata.id,
             tags = metadata.tags,
             description = description,
+            filePath = filePath,
             options = options
         )
     }
 
-    fun parseOpenQuestion(body: String, metadata: Frontmatter): OpenQuestion {
+    fun parseOpenQuestion(body: String, metadata: Frontmatter, filePath: String): OpenQuestion {
         return OpenQuestion(
             id = metadata.id,
+            filePath = filePath,
             tags = metadata.tags,
             description = body, // Open questions have only description in their body
         )
