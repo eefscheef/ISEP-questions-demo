@@ -3,7 +3,7 @@ package ut.isep
 import Config
 import question.MultipleChoiceQuestion
 import question.OpenQuestion
-import QuestionParser
+import parser.QuestionParser
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -33,7 +33,7 @@ class QuestionParserTest {
             - [ ] Both are LIFO.
         """.trimIndent()
 
-        val question = parser.parseQuestion(input, "question") as MultipleChoiceQuestion
+        val question = parser.parseQuestion("question") as MultipleChoiceQuestion
 
         assertEquals("What is the difference between a stack and a queue?", question.description)
         assertEquals(4, question.options.size)
@@ -61,7 +61,7 @@ class QuestionParserTest {
             - [ ] Test.
         """.trimIndent()
 
-        val question = parser.parseQuestion(input, "question") as MultipleChoiceQuestion
+        val question = parser.parseQuestion("question") as MultipleChoiceQuestion
 
         assertEquals("Why does the monolithic architecture not eat the microservice oriented architecture?", question.description)
         assertEquals(5, question.options.size)
@@ -81,7 +81,7 @@ class QuestionParserTest {
             What is the difference between a stack and a queue?
         """.trimIndent()
 
-        val question = parser.parseQuestion(input, "question") as OpenQuestion
+        val question = parser.parseQuestion("question") as OpenQuestion
 
         assertEquals("What is the difference between a stack and a queue?", question.description)
     }

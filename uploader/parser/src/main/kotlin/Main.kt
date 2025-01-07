@@ -1,5 +1,8 @@
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
+import parser.FrontmatterParser
+import parser.QuestionParser
+import ut.isep.AssessmentParser
 import java.io.File
 import kotlin.system.exitProcess
 
@@ -21,16 +24,14 @@ Arguments:
   <file>... List of files to process. Cannot be used with --all.
 """
 const val CONFIG_FILEPATH = "config.yaml"
-
-val configFile = File(CONFIG_FILEPATH)
-
+private val configFile = File(CONFIG_FILEPATH)
 private val config: Config = parseConfig()
 
 private fun parseConfig(): Config {
     return ObjectMapper(YAMLFactory()).readValue(configFile, Config::class.java)
 }
 
-val parser = QuestionParser(config)
+val parser = QuestionParser(FrontmatterParser(config))
 
 private fun printUsageAndExit() {
     println(USAGE)
@@ -41,18 +42,33 @@ private fun validateAll() {
 
 }
 
+private fun getQuestionID(filenames: List<String>): List<Long> {
+    val regex = """.*?_qid(\d+)""".toRegex()
+
+    return filenames.mapNotNull { filename ->
+        regex.find(filename)?.groupValues?.get(1)?.toLongOrNull()
+    }
+}
+
 fun validate(files: List<String>) {
     files.forEach { filename ->
         try {
-            parser.parseFile(File(filename))
+            parser.parseQuestion(filename)
         } catch (e: QuestionParsingException) {
             throw FileParsingException("Invalid question file", filename, e)
         }
     }
 }
 
-private fun uploadAll() {
+private fun uploadAll(commitHash: String) {
+    val databaseConfig = DatabaseConfiguration()
+    val dataSource = databaseConfig.createDataSource()
+    val sessionFactory = databaseConfig.createSessionFactory(dataSource)
+    val databaseManager = DatabaseManager(sessionFactory)
 
+    val assessmentProcessor = AssessmentParser(File("."), parser)
+    databaseManager.clearDatabase()
+    databaseManager.uploadEntities(assessmentProcessor.parseAll(commitHash))
 }
 
 

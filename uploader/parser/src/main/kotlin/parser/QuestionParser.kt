@@ -1,57 +1,19 @@
-import com.fasterxml.jackson.annotation.JsonCreator
-import com.fasterxml.jackson.annotation.JsonProperty
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
-import com.fasterxml.jackson.module.kotlin.readValue
+package parser
+
+import QuestionParsingException
 import question.*
 import ut.isep.management.model.entity.AssignmentType
-import java.io.File
-import java.io.IOException
 
 
-class QuestionParser(private val config: Config) {
-
-    data class Frontmatter @JsonCreator constructor(
-        @JsonProperty("id") val id: String?,
-        @JsonProperty("type") val type: String,
-        @JsonProperty("tags") val tags: List<String>
-    )
-
-    private val objectMapper = ObjectMapper(YAMLFactory())
-
-    fun parseFile(file: File): Question {
-        if (!file.exists()) {
-            throw FileParsingException("No such file", file.name)
-        }
-        if (!file.canRead()) {
-            throw FileParsingException("Cannot read file", file.name)
-        }
-        return try {
-            parseQuestion(file.readText(), file.name)
-        } catch (e: IOException) {
-            throw FileParsingException("An I/O error occurred: ${e.message}", file.name)
-        }
-    }
+class QuestionParser(private val frontmatterParser: FrontmatterParser) {
 
     /**
      * @throws QuestionParsingException
      */
-    fun parseQuestion(input: String, filePath: String): Question{
+    fun parseQuestion(filePath: String): Question{
         try {
-            val parts = input.split("---").map { it.trim() }.filter { it.isNotEmpty() }
-            if (parts.size != 2) {
-                throw QuestionParsingException("Invalid question format. Must contain frontmatter and body.")
-            }
-
-            val frontmatter = parts[0]
-            val body = parts[1]
-
-            val metadata: Frontmatter = objectMapper.readValue(frontmatter)
-            metadata.tags.forEach { tag ->
-                if (tag !in config.tagOptions) {
-                    throw QuestionParsingException("Invalid tag provided: $tag is not present in config file")
-                }
-            }
+            val metadata: Frontmatter = frontmatterParser.parseQuestion(filePath)
+            val body: String = QuestionFileHandler.split(filePath).second
             val type: AssignmentType = AssignmentType.fromString(metadata.type)
             return when (type) {
                 AssignmentType.MULTIPLE_CHOICE -> parseMultipleChoiceQuestion(body, metadata, filePath)
@@ -59,7 +21,10 @@ class QuestionParser(private val config: Config) {
                 AssignmentType.CODING -> TODO()
             }
         } catch (e: Exception) {
-            throw QuestionParsingException("Failed to parse question.", "Input: ${input.take(100)}\nError: ${e.message}")
+            throw QuestionParsingException(
+                "Failed to parse question.",
+                "Input: ${filePath}\nError: ${e.message}"
+            )
         }
     }
 

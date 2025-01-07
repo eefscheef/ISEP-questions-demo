@@ -3,7 +3,7 @@ package question
 import ut.isep.management.model.entity.AssignmentType
 
 data class OpenQuestion(
-    override val id: String?,
+    override val id: Long?,
     override val tags: List<String>,
     override val description: String,
     override val filePath: String

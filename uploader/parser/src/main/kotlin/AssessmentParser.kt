@@ -1,19 +1,17 @@
 package ut.isep
 
-import QuestionParser
+import parser.QuestionParser
 import question.Question
 import ut.isep.management.model.entity.Assessment
 import ut.isep.management.model.entity.AssessmentID
 import ut.isep.management.model.entity.Section
 import java.io.File
 
-class AssessmentProcessor(private val rootDir: File, private val parser: QuestionParser, private val commitHash: String) {
-
+class AssessmentParser(private val questionDir: File, private val parser: QuestionParser) {
 
     private fun getQuestionDirectories(): Array<File> {
-        return rootDir.listFiles { file ->
+        return questionDir.listFiles { file ->
             file.isDirectory &&
-                    file.name != "uploader" &&
                     !file.name.startsWith(".")
         } ?: emptyArray()
     }
@@ -24,7 +22,7 @@ class AssessmentProcessor(private val rootDir: File, private val parser: Questio
         val topic = questionDir.name
         val mdFiles = questionDir.listFiles { file -> file.extension == "md" } ?: emptyArray()
         val questions: List<Question> = mdFiles.map { mdFile ->
-            parser.parseQuestion(mdFile.readText(), mdFile.name)
+            parser.parseQuestion(mdFile.name)
         }
         val questionsByTag = questions.flatMap { question ->
             question.tags.map { tag -> tag to question }
@@ -40,11 +38,11 @@ class AssessmentProcessor(private val rootDir: File, private val parser: Questio
             title = topic,
             assignments = this.map { question ->
                 question.toEntity()
-            }
+            }.toMutableList()
         )
     }
 
-    fun process(): List<Assessment> {
+    fun parseAll(commitHash: String): List<Assessment> {
         val questionDirs = getQuestionDirectories()
         val tagsToSections: Map<String, List<Section>> = questionDirs.map { questionDir ->
             parseMarkDownFilesInDir(questionDir)
