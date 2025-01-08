@@ -3,6 +3,7 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
 import parser.FrontmatterParser
 import parser.QuestionParser
 import ut.isep.AssessmentParser
+import ut.isep.AssessmentUpdater
 import java.io.File
 import kotlin.system.exitProcess
 
@@ -10,15 +11,16 @@ import kotlin.system.exitProcess
 const val USAGE = """
 Usage:
   validate [--all] [<file>...]
-  upload [--all] [--deleted <file>...] [--added <file>...] [--updated <file>...]
+  upload [--all] [--deleted <file>...] [--added <file>...] [--updated <file>...] --commit <hash>
 
 Options:
   -h --help     Show this screen.
   --all -a      Validate or upload all questions in the repository (mutually exclusive with <file>...).
+  --commit      Specify the commit hash for the upload operation. This option is required when using the `upload` command.
 
 Commands:
   validate      Validate the specified question files.
-  upload        Parse the specified files and upload them to the database.
+  upload        Parse the specified files and upload them to the database. Requires a commit hash using `--commit <hash>`.
 
 Arguments:
   <file>... List of files to process. Cannot be used with --all.
@@ -33,7 +35,7 @@ private fun parseConfig(): Config {
 
 val parser = QuestionParser(FrontmatterParser(config))
 
-private fun printUsageAndExit() {
+private fun printUsageAndExit(): Nothing {
     println(USAGE)
     exitProcess(1)
 }
@@ -61,7 +63,7 @@ fun validate(files: List<String>) {
 }
 
 private fun uploadAll(commitHash: String) {
-    val databaseConfig = DatabaseConfiguration()
+    val databaseConfig = DatabaseConfiguration(AzureDatabaseConfigProvider())
     val dataSource = databaseConfig.createDataSource()
     val sessionFactory = databaseConfig.createSessionFactory(dataSource)
     val databaseManager = DatabaseManager(sessionFactory)
@@ -102,51 +104,90 @@ fun handleValidateCommand(processEntireRepo: Boolean, filenames: List<String>) {
 }
 
 fun handleUploadCommand(processEntireRepo: Boolean, arguments: List<String>) {
+    val parsedArguments = parseUploadArguments(arguments)
     if (processEntireRepo) {
-        uploadAll()
+        uploadAll(parsedArguments.commitHash ?: printUsageAndExit()) // Must provide commit hash
     } else {
-        val (deletedFiles, addedFiles, updatedFiles) = parseUploadArguments(arguments)
-        validateUploadArguments(deletedFiles, addedFiles, updatedFiles)
-        upload(deletedFiles, addedFiles, updatedFiles)
+        validateUploadArguments(parsedArguments)
+        upload(parsedArguments)
     }
 }
 
-fun parseUploadArguments(arguments: List<String>): Triple<List<String>, List<String>, List<String>> {
+fun parseUploadArguments(arguments: List<String>): Arguments {
     val deletedFiles = mutableListOf<String>()
     val addedFiles = mutableListOf<String>()
     val updatedFiles = mutableListOf<String>()
+    var commitHash: String? = null
 
     var currentList: MutableList<String>? = null
+    var i = 0
 
-    for (arg in arguments) {
-        when (arg) {
+    while (i < arguments.size) {
+        when (val arg = arguments[i]) {
             "--deleted" -> currentList = deletedFiles
             "--added" -> currentList = addedFiles
             "--updated" -> currentList = updatedFiles
-            else -> if (arg.startsWith("--")) {
-                printUsageAndExit()
-            } else {
-                currentList?.add(arg) ?: printUsageAndExit() // No option provided
+            "--commit" -> {
+                if (i + 1 < arguments.size) {
+                    commitHash = arguments[i + 1]
+                    i++ // Skip the next argument since it's the hash
+                } else {
+                    printUsageAndExit() // Handle missing hash
+                }
+            }
+            else -> {
+                if (arg.startsWith("--")) {
+                    printUsageAndExit()
+                } else {
+                    currentList?.add(arg) ?: printUsageAndExit() // No option provided
+                }
             }
         }
+        i++
     }
 
-    return Triple(deletedFiles, addedFiles, updatedFiles)
+    return Arguments(
+        deletedFiles = deletedFiles,
+        addedFiles = addedFiles,
+        updatedFiles = updatedFiles,
+        commitHash = commitHash
+    )
 }
 
-fun validateUploadArguments(deletedFiles: List<String>, addedFiles: List<String>, updatedFiles: List<String>) {
-    if (deletedFiles.isEmpty() && addedFiles.isEmpty() && updatedFiles.isEmpty()) {
+
+data class Arguments(
+    val deletedFiles: List<String>,
+    val addedFiles: List<String>,
+    val updatedFiles: List<String>,
+    val commitHash: String?
+)
+
+fun validateUploadArguments(arguments: Arguments) {
+    if (arguments.deletedFiles.isEmpty() && arguments.addedFiles.isEmpty() && arguments.updatedFiles.isEmpty()) {
         println("Error: At least one of --deleted, --added, or --updated must be provided with files.")
         printUsageAndExit()
     }
 }
 
 
-fun upload(deletedFiles: List<String>, addedFiles: List<String>, updatedFiles: List<String>) {
+fun upload(arguments: Arguments) {
+    val databaseConfig = DatabaseConfiguration(AzureDatabaseConfigProvider())
+    val dataSource = databaseConfig.createDataSource()
+    val sessionFactory = databaseConfig.createSessionFactory(dataSource)
+    val dbManager = DatabaseManager(sessionFactory)
+    validateUploadArguments(arguments)
     println("Uploading changes:")
-    if (deletedFiles.isNotEmpty()) println("Deleted files: $deletedFiles")
-    if (addedFiles.isNotEmpty()) println("Added files: $addedFiles")
-    if (updatedFiles.isNotEmpty()) println("Updated files: $updatedFiles")
+    if (arguments.deletedFiles.isNotEmpty()) {
+        println("Deleted files: ${arguments.deletedFiles}")
+
+    }
+    if (arguments.addedFiles.isNotEmpty()) {
+        println("Added files: ${arguments.addedFiles}")
+    }
+
+    if (arguments.updatedFiles.isNotEmpty()) {
+        println("Updated files: ${arguments.updatedFiles}")
+    }
 }
 
 

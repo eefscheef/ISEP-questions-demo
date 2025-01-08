@@ -1,19 +1,24 @@
 package ut.isep
 
 import Config
+import org.junit.jupiter.api.Test
+import parser.FrontmatterParser
+import parser.QuestionParser
 import question.MultipleChoiceQuestion
 import question.OpenQuestion
-import parser.QuestionParser
-import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class QuestionParserTest {
 
-    private val parser = QuestionParser(Config(
-        tagOptions = listOf("Frontend Developer", "Backend Developer", "System Design", "Deezveloper"),
-        questionOptions = listOf("multiple-choice", "open")
-    ))
+    private val parser = QuestionParser(
+        FrontmatterParser(
+            Config(
+                tagOptions = listOf("Frontend Developer", "Backend Developer", "System Design", "Deezveloper"),
+                questionOptions = listOf("multiple-choice", "open")
+            )
+        )
+    )
 
     @Test
     fun `test parsing single answer multiple-choice question`() {
@@ -38,7 +43,7 @@ class QuestionParserTest {
         assertEquals("What is the difference between a stack and a queue?", question.description)
         assertEquals(4, question.options.size)
         assertTrue(question.options.any { it.text == "A stack is LIFO, a queue is FIFO." && it.isCorrect })
-        assertTrue(question.options.filter {it.isCorrect}.size == 1)
+        assertTrue(question.options.filter { it.isCorrect }.size == 1)
     }
 
     @Test
@@ -63,9 +68,12 @@ class QuestionParserTest {
 
         val question = parser.parseQuestion("question") as MultipleChoiceQuestion
 
-        assertEquals("Why does the monolithic architecture not eat the microservice oriented architecture?", question.description)
+        assertEquals(
+            "Why does the monolithic architecture not eat the microservice oriented architecture?",
+            question.description
+        )
         assertEquals(5, question.options.size)
-        assertTrue(question.options.filter {it.isCorrect}.size == 3)
+        assertTrue(question.options.filter { it.isCorrect }.size == 3)
     }
 
 

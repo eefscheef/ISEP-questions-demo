@@ -53,7 +53,6 @@ class DatabaseManager(private val sessionFactory: SessionFactory) {
             val assessmentRoot = query.from(Assessment::class.java)
             val sectionJoin = assessmentRoot.join<Assessment, Section>("sections")
             val assignmentJoin = sectionJoin.join<Section, Assignment>("assignments")
-
             query.select(assessmentRoot).distinct(true)
                 .where(assignmentJoin.get<Long>("id").`in`(assignmentIds))
 

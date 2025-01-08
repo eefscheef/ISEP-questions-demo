@@ -6,15 +6,31 @@ import org.hibernate.cfg.Configuration
 import javax.sql.DataSource
 import ut.isep.management.model.entity.*
 
-class DatabaseConfiguration {
+interface DatabaseConfigProvider {
+    fun getJdbcUrl(): String
+    fun getUsername(): String
+    fun getPassword(): String
+    fun isTestEnvironment(): Boolean
+}
+
+class AzureDatabaseConfigProvider : DatabaseConfigProvider {
+    override fun getJdbcUrl(): String = System.getenv("JDBC_URL")
+        ?: "jdbc:postgresql://isep-test-database.postgres.database.azure.com:5432/postgres?sslmode=require"
+    override fun getUsername(): String = System.getenv("DB_USERNAME") ?: "default_user"
+    override fun getPassword(): String = System.getenv("DB_PASSWORD") ?: "default_password"
+    override fun isTestEnvironment(): Boolean = false
+}
+
+
+
+class DatabaseConfiguration(private val configProvider: DatabaseConfigProvider) {
     fun createDataSource(): DataSource {
         val config = HikariConfig().apply {
-            jdbcUrl = System.getenv("JDBC_URL")
-                ?: "jdbc:postgresql://isep-test-database.postgres.database.azure.com:5432/postgres?sslmode=require" //TODO remove once test with testcontainers added for local testing
+            jdbcUrl = configProvider.getJdbcUrl()
             driverClassName = "org.postgresql.Driver"
-            username = System.getenv("DB_USERNAME")
-            password = System.getenv("DB_PASSWORD")
-            maximumPoolSize = 10
+            username = configProvider.getUsername()
+            password = configProvider.getPassword()
+            maximumPoolSize = if (configProvider.isTestEnvironment()) 5 else 10
         }
         return HikariDataSource(config)
     }
@@ -35,16 +51,13 @@ class DatabaseConfiguration {
             addAnnotatedClass(SolvedAssignmentCoding::class.java)
             addAnnotatedClass(SolvedAssignmentMultipleChoice::class.java)
             addAnnotatedClass(SolvedAssignmentOpen::class.java)
-
         }
 
-        // Build ServiceRegistry with the DataSource
         val serviceRegistry = StandardServiceRegistryBuilder()
             .applySetting("hibernate.connection.datasource", dataSource)
             .applySettings(configuration.properties)
             .build()
 
-        // Build the SessionFactory
         return configuration.buildSessionFactory(serviceRegistry)
     }
 }

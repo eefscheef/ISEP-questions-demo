@@ -7,28 +7,37 @@ import parser.FrontmatterParser
 import parser.QuestionFileHandler
 import ut.isep.management.model.entity.*
 
-class AssessmentUpdater(private val dbManager: DatabaseManager, private val parser: FrontmatterParser, private val commitHash: String) {
+class AssessmentUpdater(
+    private val dbManager: DatabaseManager,
+    private val parser: FrontmatterParser,
+    private val commitHash: String
+) {
     private val tagToUpdatedAssessment: MutableMap<String, Assessment> = mutableMapOf()
 
     fun addedQuestionFiles(addedFilenames: List<String>): AssessmentUpdater {
-        return handleAddedAssignments(parseAssignments(addedFilenames).map{it.toNewAssignment()})
+        return handleAddedAssignments(parseAssignments(addedFilenames).map { it.toNewAssignment() })
     }
 
     fun deletedQuestionFiles(deletedFilenames: List<String>): AssessmentUpdater {
-        val ids = deletedFilenames.mapNotNull {filename ->
+        val ids = deletedFilenames.mapNotNull { filename ->
             QuestionFileHandler.getQuestionID(filename)
         }
         return handleDeletedAssignments(ids)
     }
 
     fun modifiedQuestionFiles(modifiedFilenames: List<String>): AssessmentUpdater {
-        return handleModifiedAssignments(parseAssignments(modifiedFilenames))
+        return processModifiedAssignments(parseAssignments(modifiedFilenames))
     }
 
     fun modifiedConfig(config: Config) {
         val inactiveAssessments: List<String> = dbManager.filterInactiveTags(config.tagOptions)
         val newAssessments = inactiveAssessments.map { tag ->
-            Assessment(AssessmentID(tag, commitHash)) // create empty assessments for the tags that are in config, but have no active assessments
+            Assessment(
+                AssessmentID(
+                    tag,
+                    commitHash
+                )
+            ) // create empty assessments for the tags that are in config, but have no active assessments
         }
         dbManager.uploadEntities(newAssessments)
     }
@@ -46,7 +55,7 @@ class AssessmentUpdater(private val dbManager: DatabaseManager, private val pars
 
         val assessmentsToUpdate = dbManager.findAssessmentsByAssignmentIds(deletedQuestionIds)
         assessmentsToUpdate.forEach { assessment ->
-            deletedQuestionIds.forEach {deletedQuestionId ->
+            deletedQuestionIds.forEach { deletedQuestionId ->
                 deleteAssignmentFromAssessment(assessment, deletedQuestionId)
             }
         }
@@ -74,36 +83,55 @@ class AssessmentUpdater(private val dbManager: DatabaseManager, private val pars
         val updatedAssessment = tagToUpdatedAssessment.getOrPut(tag) {
             assessment.copyWithoutCloningAssignments()
         }
-        updatedAssessment.sections.first {section ->
-            section.title == assignment.sections.first().title
+        val sectionsToUpdate = updatedAssessment.sections.filter { section ->
+            section.title == assignment.sectionTitle
         }
-        updatedAssessment.sections.forEach { section ->
-            section.assignments.add
+        if (sectionsToUpdate.isEmpty()) {
+            val newSection = Section(title = assignment.sectionTitle).apply { this.addAssignment(assignment) }
+            assessment.addSection(newSection)
+        } else if (sectionsToUpdate.size > 1) {
+            throw IllegalStateException("Assessments should not have multiple sections with the same title")
+        } else {
+            sectionsToUpdate.forEach { section ->
+                section.addAssignment(assignment)
+            }
         }
     }
 
+    private fun getLatestAssessmentByTag(assessmentTag: String): Assessment {
+        return tagToUpdatedAssessment[assessmentTag]
+            ?: dbManager.getLatestAssessment(assessmentTag)
+    }
 
-
-    private fun handleModifiedAssignments(frontmatters: List<Frontmatter>): AssessmentUpdater {
+    private fun processModifiedAssignments(frontmatters: List<Frontmatter>): AssessmentUpdater {
         if (frontmatters.isEmpty()) return this
 
         val ids: List<Long> = frontmatters.map {
-            it.id ?: throw IllegalStateException("Modified question files should always have a valid ID in their filename")
+            it.id ?: throw IllegalStateException(
+                "Could not parse ID for modified question file at ${it.filePath}"
+            )
         }
         val existingAssignments: Map<Long, Assignment> = dbManager.findAssignmentsByIds(ids).associateBy(Assignment::id)
-        // All assignments whose persistent properties differ from the already stored Assignment's properties
         val differentAssignments: MutableList<Assignment> = mutableListOf()
 
         for (frontmatter: Frontmatter in frontmatters) {
             val existingAssignment = existingAssignments[frontmatter.id]
-                ?: throw IllegalStateException("Modified question files should always have a valid ID in their filename")
+                ?: throw IllegalStateException(
+                    "For modified file with ID ${frontmatter.id} there is no existing assignment in the database"
+                )
 
             val updatedAssignment = frontmatter.toModifiedAssignment()
-            if (existingAssignment != updatedAssignment) {
-                val updatedTags = existingAssignment.sections.map{it.assessment!!.id.tag!!}
-                val newTags: List<String> = frontmatter.tags - updatedTags.toSet()
-                val removedTags: List<String> = updatedTags - frontmatter.tags.toSet()
+            if (updatedAssignment.assignmentType != existingAssignment.assignmentType || updatedAssignment.filePath != existingAssignment.filePath) {
                 differentAssignments.add(existingAssignment)
+            }
+            val existingTags = existingAssignment.sections.map { it.assessment!!.id.tag!! }
+            val addedTags: List<String> = frontmatter.tags - existingTags.toSet()
+            addedTags.forEach { tag ->
+                addAssignmentToAssessment(getLatestAssessmentByTag(tag), updatedAssignment)
+            }
+            val removedTags: List<String> = existingTags - frontmatter.tags.toSet()
+            removedTags.forEach { tag ->
+                deleteAssignmentFromAssessment(getLatestAssessmentByTag(tag), updatedAssignment.id)
             }
         }
         return handleModifiedAssignments(differentAssignments)
@@ -120,7 +148,7 @@ class AssessmentUpdater(private val dbManager: DatabaseManager, private val pars
                 }
                 updatedAssessment.sections.forEach { section ->
                     section.assignments.replaceAll {
-                        if (it.id == changedAssignment.id) changedAssignment.apply {it.id = 0} else it
+                        if (it.id == changedAssignment.id) changedAssignment.apply { it.id = 0 } else it
                     }
                 }
             }
@@ -130,21 +158,19 @@ class AssessmentUpdater(private val dbManager: DatabaseManager, private val pars
 
     private fun handleAddedAssignments(addedAssignments: List<Assignment>): AssessmentUpdater {
         val newAssessments = mutableListOf<Assessment>()
-        addedAssignments.forEach { question ->
-            question.tags.forEach { tag ->
-                val assessments = dbManager.findAssessmentsByAssignmentIds(listOfNotNull(question.id))
-                assessments.forEach { assessment ->
-                    val newSections = assessment.sections.map { section ->
-                        Section(
-                            title = section.title,
-                            assignments = section.assignments.toMutableList().apply { add(question.toEntity()) }
-                        )
-                    }
-                    newAssessments.add(Assessment(AssessmentID(tag, commitHash), newSections.toMutableList()))
+        addedAssignments.forEach { assignment ->
+            val assessments = dbManager.findAssessmentsByAssignmentIds(listOfNotNull(assignment.id))
+            assessments.forEach { assessment ->
+                val newSections = assessment.sections.map { section ->
+                    Section(
+                        title = section.title,
+                        assignments = section.assignments.toMutableList().apply { add(assignment) }
+                    )
                 }
+                newAssessments.add(Assessment(AssessmentID(assessment.id.tag, commitHash), newSections.toMutableList()))
             }
         }
-        return newAssessments
+        return this
     }
 
     private fun Frontmatter.toModifiedAssignment(): Assignment {
@@ -181,7 +207,7 @@ class AssessmentUpdater(private val dbManager: DatabaseManager, private val pars
     }
 
     private fun parseAssignments(filenames: List<String>): List<Frontmatter> {
-        return filenames.map {filename ->
+        return filenames.map { filename ->
             parser.parseQuestion(filename)
         }
     }
