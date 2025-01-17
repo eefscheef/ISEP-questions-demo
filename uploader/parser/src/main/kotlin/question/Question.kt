@@ -12,7 +12,7 @@ sealed interface Question {
 
     fun toEntity(): Assignment {
         return id?.let {id ->
-            Assignment(id = id, filePath = filePath, assignmentType = type)
-        } ?: Assignment(filePath = filePath, assignmentType = type)
+            Assignment(id = id, baseFilePath = filePath, assignmentType = type)
+        } ?: Assignment(baseFilePath = filePath, assignmentType = type)
     }
 }
