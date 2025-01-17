@@ -2,21 +2,19 @@ package ut.isep
 
 import Config
 import org.junit.jupiter.api.Test
-import parser.FrontmatterParser
 import parser.QuestionParser
 import question.MultipleChoiceQuestion
 import question.OpenQuestion
+import java.io.StringReader
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class QuestionParserTest {
 
     private val parser = QuestionParser(
-        FrontmatterParser(
-            Config(
-                tagOptions = listOf("Frontend Developer", "Backend Developer", "System Design", "Deezveloper"),
-                questionOptions = listOf("multiple-choice", "open")
-            )
+        Config(
+            tagOptions = listOf("Frontend Developer", "Backend Developer", "System Design", "Deezveloper"),
+            questionOptions = listOf("multiple-choice", "open")
         )
     )
 
@@ -24,7 +22,6 @@ class QuestionParserTest {
     fun `test parsing single answer multiple-choice question`() {
         val input = """
             ---
-            id: unique-question-id-12345 #Automatically generated ID for  database reference, do not modify!
             type: multiple-choice
             tags:
               - Frontend Developer
@@ -34,14 +31,16 @@ class QuestionParserTest {
             
             - [ ] A stack is FIFO, a queue is LIFO.
             - [x] A stack is LIFO, a queue is FIFO.
-            - [ ] Both are FIFO.
+            - [ ] vBoth are FIFO.
             - [ ] Both are LIFO.
         """.trimIndent()
+        val inputReader = StringReader(input)
 
-        val question = parser.parseQuestion("question") as MultipleChoiceQuestion
+        val question = parser.parse(inputReader, "questionFileWithId_qid12.md") as MultipleChoiceQuestion
 
         assertEquals("What is the difference between a stack and a queue?", question.description)
         assertEquals(4, question.options.size)
+        assertEquals(12, question.id)
         assertTrue(question.options.any { it.text == "A stack is LIFO, a queue is FIFO." && it.isCorrect })
         assertTrue(question.options.filter { it.isCorrect }.size == 1)
     }
@@ -65,8 +64,8 @@ class QuestionParserTest {
             - [ ] Monolithic architecture is easier to maintain than microservices.
             - [ ] Test.
         """.trimIndent()
-
-        val question = parser.parseQuestion("question") as MultipleChoiceQuestion
+        val inputReader = StringReader(input)
+        val question = parser.parse(inputReader, "exampleQuestionWithNoID") as MultipleChoiceQuestion
 
         assertEquals(
             "Why does the monolithic architecture not eat the microservice oriented architecture?",
@@ -81,15 +80,15 @@ class QuestionParserTest {
     fun `test parsing open question`() {
         val input = """
             ---
-            id: unique-question-id-35842 #Automatically generated ID for  database reference, do not modify!
             type: open
             tags: 
               - Deezveloper
             ---
             What is the difference between a stack and a queue?
         """.trimIndent()
+        val inputReader = StringReader(input)
 
-        val question = parser.parseQuestion("question") as OpenQuestion
+        val question = parser.parse(inputReader, "sampleQuestionWithNoId") as OpenQuestion
 
         assertEquals("What is the difference between a stack and a queue?", question.description)
     }
