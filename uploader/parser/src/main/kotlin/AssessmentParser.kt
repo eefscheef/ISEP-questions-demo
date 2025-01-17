@@ -6,6 +6,7 @@ import ut.isep.management.model.entity.Assessment
 import ut.isep.management.model.entity.AssessmentID
 import ut.isep.management.model.entity.Section
 import java.io.File
+import java.io.FileInputStream
 
 class AssessmentParser(private val questionDir: File, private val parser: QuestionParser) {
 
@@ -22,7 +23,7 @@ class AssessmentParser(private val questionDir: File, private val parser: Questi
         val topic = questionDir.name
         val mdFiles = questionDir.listFiles { file -> file.extension == "md" } ?: emptyArray()
         val questions: List<Question> = mdFiles.map { mdFile ->
-            parser.parseQuestion(mdFile.name)
+            parser.parse(FileInputStream(mdFile).bufferedReader(), mdFile.name)
         }
         val questionsByTag = questions.flatMap { question ->
             question.tags.map { tag -> tag to question }
