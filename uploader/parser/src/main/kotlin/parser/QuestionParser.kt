@@ -1,42 +1,45 @@
 package parser
 
+import Config
 import QuestionParsingException
 import question.*
 import ut.isep.management.model.entity.AssignmentType
+import java.io.Reader
 
 
-class QuestionParser(private val frontmatterParser: FrontmatterParser) {
+class QuestionParser(
+    private val config: Config,
+    private val frontmatterParser: FrontmatterParser = FrontmatterParser(config)
+) {
 
     /**
      * @throws QuestionParsingException
      */
-    fun parseQuestion(filePath: String): Question{
+    fun parse(inputReader: Reader, fileName: String): Question {
         try {
-            val metadata: Frontmatter = frontmatterParser.parseQuestion(filePath)
-            val body: String = QuestionFileHandler.split(filePath).second
+            // Delegate parsing of frontmatter and body
+            val (metadata, body) = frontmatterParser.parse(inputReader, fileName)
             val type: AssignmentType = AssignmentType.fromString(metadata.type)
             return when (type) {
-                AssignmentType.MULTIPLE_CHOICE -> parseMultipleChoiceQuestion(body, metadata, filePath)
-                AssignmentType.OPEN -> parseOpenQuestion(body, metadata, filePath)
+                AssignmentType.MULTIPLE_CHOICE -> parseMultipleChoiceQuestion(body, metadata)
+                AssignmentType.OPEN -> parseOpenQuestion(body, metadata)
                 AssignmentType.CODING -> TODO()
             }
         } catch (e: Exception) {
             throw QuestionParsingException(
-                "Failed to parse question.",
-                "Input: ${filePath}\nError: ${e.message}"
+                message = "Failed to parse question.",
+                context = "Input: $fileName\nError: ${e.message}",
+                cause = e
             )
         }
     }
 
-
-    fun parseMultipleChoiceQuestion(body: String, metadata: Frontmatter, filePath: String): MultipleChoiceQuestion {
+    // Parsing logic for question types remains unchanged
+    private fun parseMultipleChoiceQuestion(body: String, metadata: Frontmatter): MultipleChoiceQuestion {
         val descriptionRegex = """^(.*?)(?=\n- |\$)""".toRegex(RegexOption.DOT_MATCHES_ALL)
         val optionsRegex = """-\s*\[([xX ])]\s*(.*?)\s*$""".toRegex(RegexOption.MULTILINE)
 
-        // Extract description using regex and default to an empty string if not found
         val description = descriptionRegex.find(body)?.groupValues?.getOrNull(1)?.trim().orEmpty()
-
-        // Extract options from the body
         val options = optionsRegex.findAll(body).map { matchResult ->
             val (isChecked, text) = matchResult.destructured
             MultipleChoiceQuestion.Option(
@@ -45,22 +48,21 @@ class QuestionParser(private val frontmatterParser: FrontmatterParser) {
             )
         }.toList()
 
-        // Return the parsed question
         return MultipleChoiceQuestion(
             id = metadata.id,
             tags = metadata.tags,
+            filePath = metadata.originalFilePath,
             description = description,
-            filePath = filePath,
             options = options
         )
     }
 
-    fun parseOpenQuestion(body: String, metadata: Frontmatter, filePath: String): OpenQuestion {
+    private fun parseOpenQuestion(body: String, metadata: Frontmatter): OpenQuestion {
         return OpenQuestion(
             id = metadata.id,
-            filePath = filePath,
             tags = metadata.tags,
-            description = body, // Open questions have only description in their body
+            filePath = metadata.originalFilePath,
+            description = body
         )
     }
 }
