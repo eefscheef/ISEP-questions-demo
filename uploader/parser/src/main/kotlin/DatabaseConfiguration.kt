@@ -10,7 +10,6 @@ interface DatabaseConfigProvider {
     fun getJdbcUrl(): String
     fun getUsername(): String
     fun getPassword(): String
-    fun isTestEnvironment(): Boolean
 }
 
 class AzureDatabaseConfigProvider : DatabaseConfigProvider {
@@ -18,10 +17,7 @@ class AzureDatabaseConfigProvider : DatabaseConfigProvider {
         ?: "jdbc:postgresql://isep-test-database.postgres.database.azure.com:5432/postgres?sslmode=require"
     override fun getUsername(): String = System.getenv("DB_USERNAME") ?: "default_user"
     override fun getPassword(): String = System.getenv("DB_PASSWORD") ?: "default_password"
-    override fun isTestEnvironment(): Boolean = false
 }
-
-
 
 class DatabaseConfiguration(private val configProvider: DatabaseConfigProvider) {
     fun createDataSource(): DataSource {
@@ -30,7 +26,7 @@ class DatabaseConfiguration(private val configProvider: DatabaseConfigProvider) 
             driverClassName = "org.postgresql.Driver"
             username = configProvider.getUsername()
             password = configProvider.getPassword()
-            maximumPoolSize = if (configProvider.isTestEnvironment()) 5 else 10
+            maximumPoolSize = 10
         }
         return HikariDataSource(config)
     }
