@@ -1,77 +1,111 @@
 package ut.isep
 
 import Config
-import DatabaseManager
+import FileParsingException
+import QueryExecutor
+import org.hibernate.SessionFactory
 import parser.Frontmatter
 import parser.FrontmatterParser
-import parser.QuestionFileHandler
+import parser.QuestionIDUtil
 import ut.isep.management.model.entity.*
+import java.io.File
+import java.io.FileInputStream
 
 class AssessmentUpdater(
-    private val dbManager: DatabaseManager,
-    private val parser: FrontmatterParser,
+    private val sessionFactory: SessionFactory,
+    private val config: Config,
     private val commitHash: String
 ) {
-    private val tagToUpdatedAssessment: MutableMap<String, Assessment> = mutableMapOf()
+    private val parser = FrontmatterParser(config)
 
-    fun addedQuestionFiles(addedFilenames: List<String>): AssessmentUpdater {
-        return handleAddedAssignments(parseAssignments(addedFilenames).map { it.toNewAssignment() })
-    }
+    private lateinit var queryExecutor: QueryExecutor
+    private val tagToNewAssessment: MutableMap<String, Assessment> = mutableMapOf()
+    private val frontmatterToNewAssignment: MutableMap<Frontmatter, Assignment> = mutableMapOf()
 
-    fun deletedQuestionFiles(deletedFilenames: List<String>): AssessmentUpdater {
-        val ids = deletedFilenames.mapNotNull { filename ->
-            QuestionFileHandler.getQuestionID(filename)
+    fun updateAssessments(
+        addedFilenames: List<String> = listOf(),
+        deletedFilenames: List<String> = listOf(),
+        modifiedFilenames: List<String> = listOf(),
+        isConfigModified: Boolean = false,
+    ) {
+        queryExecutor = QueryExecutor(sessionFactory.openSession())
+        tagToNewAssessment.clear()
+        frontmatterToNewAssignment.clear()
+        queryExecutor.withTransaction {
+            if (isConfigModified) {
+                updateConfig()
+            }
+            if (addedFilenames.isNotEmpty()) {
+                addAssignments(parseAssignments(addedFilenames))
+            }
+            if (deletedFilenames.isNotEmpty()) {
+                val ids = deletedFilenames.mapNotNull { filename ->
+                    QuestionIDUtil.parseQuestionID(filename)
+                }
+                deleteAssignments(ids)
+            }
+            if (modifiedFilenames.isNotEmpty()) {
+                modifyAssignments(parseAssignments(modifiedFilenames))
+            }
+            upload()
+            updateNewAssignmentFileNames()
         }
-        return handleDeletedAssignments(ids)
+        queryExecutor.closeSession()
     }
 
-    fun modifiedQuestionFiles(modifiedFilenames: List<String>): AssessmentUpdater {
-        return processModifiedAssignments(parseAssignments(modifiedFilenames))
-    }
-
-    fun modifiedConfig(config: Config) {
-        val inactiveAssessments: List<String> = dbManager.filterInactiveTags(config.tagOptions)
-        val newAssessments = inactiveAssessments.map { tag ->
+    private fun updateConfig() {
+        val currentActiveAssessmentsByTag: Map<String, Assessment> =
+            queryExecutor.getLatestAssessments().associateBy { it.id.tag!! }
+        val currentTags: Set<String> = currentActiveAssessmentsByTag.keys
+        val newTags: Set<String> = config.tagOptions.subtract(currentTags)
+        // create empty assessments for the tags that are in config, but have no active assessments
+        val newAssessments = newTags.associateWith { tag ->
             Assessment(
-                AssessmentID(
+                id = AssessmentID(
                     tag,
                     commitHash
-                )
-            ) // create empty assessments for the tags that are in config, but have no active assessments
+                ),
+                latest = true
+            )
         }
-        dbManager.uploadEntities(newAssessments)
+        val deletedTags: Set<String> = currentTags.subtract(config.tagOptions.toSet())
+        // mark assessments whose tags were deleted from the config as inactive
+        val deletedAssessments = deletedTags.associateWith { deletedTag ->
+            currentActiveAssessmentsByTag[deletedTag]?.apply { latest = false }
+                ?: throw IllegalStateException("Could not find assessment with tag $deletedTag to mark as latest=false")
+        }
+
+        tagToNewAssessment.putAll(newAssessments)
+        tagToNewAssessment.putAll(deletedAssessments)
     }
 
-    fun updatedAssessments(): List<Assessment> {
-        return tagToUpdatedAssessment.values.toList()
+    private fun upload() {
+        queryExecutor.uploadEntities(tagToNewAssessment.values.toList())
+        queryExecutor.flush()
+        return
     }
 
-    fun upload() {
-        return dbManager.uploadEntities(updatedAssessments())
-    }
+    private fun deleteAssignments(deletedQuestionIds: List<Long>) {
+        if (deletedQuestionIds.isEmpty()) return
 
-    private fun handleDeletedAssignments(deletedQuestionIds: List<Long>): AssessmentUpdater {
-        if (deletedQuestionIds.isEmpty()) return this
-
-        val assessmentsToUpdate = dbManager.findAssessmentsByAssignmentIds(deletedQuestionIds)
+        val assessmentsToUpdate = queryExecutor.findAssessmentsByAssignmentIds(deletedQuestionIds)
         assessmentsToUpdate.forEach { assessment ->
             deletedQuestionIds.forEach { deletedQuestionId ->
                 deleteAssignmentFromAssessment(assessment, deletedQuestionId)
             }
         }
-        return this
     }
 
     private fun deleteAssignmentFromAssessment(
         assessment: Assessment,
-        deletedQuestionId: Long
+        deletedAssignmentId: Long
     ) {
-        val tag = assessment.id.tag ?: throw IllegalStateException("Retrieved null tag from Assessments table")
-        val updatedAssessment = tagToUpdatedAssessment.getOrPut(tag) {
+        val tag = assessment.id.tag!!
+        val updatedAssessment = tagToNewAssessment.getOrPut(tag) {
             assessment.copyWithoutCloningAssignments()
         }
         updatedAssessment.sections.forEach { section ->
-            section.assignments.removeIf { assignment -> assignment.id == deletedQuestionId }
+            section.removeAssignmentById(deletedAssignmentId)
         }
     }
 
@@ -79,9 +113,12 @@ class AssessmentUpdater(
         assessment: Assessment,
         assignment: Assignment,
     ) {
-        val tag = assessment.id.tag ?: throw IllegalStateException("Retrieved null tag from Assessments table")
-        val updatedAssessment = tagToUpdatedAssessment.getOrPut(tag) {
+        val tag = assessment.id.tag!!
+        val updatedAssessment = tagToNewAssessment.getOrPut(tag) {
             assessment.copyWithoutCloningAssignments()
+        }
+        if (!updatedAssessment.latest) {
+            throw IllegalStateException("Attempted to add assignment ${assignment.id} to assessment ${assessment.id}")
         }
         val sectionsToUpdate = updatedAssessment.sections.filter { section ->
             section.title == assignment.sectionTitle
@@ -92,123 +129,140 @@ class AssessmentUpdater(
         } else if (sectionsToUpdate.size > 1) {
             throw IllegalStateException("Assessments should not have multiple sections with the same title")
         } else {
-            sectionsToUpdate.forEach { section ->
-                section.addAssignment(assignment)
-            }
+            sectionsToUpdate[0].addAssignment(assignment)
         }
     }
 
     private fun getLatestAssessmentByTag(assessmentTag: String): Assessment {
-        return tagToUpdatedAssessment[assessmentTag]
-            ?: dbManager.getLatestAssessment(assessmentTag)
+        return tagToNewAssessment[assessmentTag]
+            ?: queryExecutor.getLatestAssessment(assessmentTag)
     }
 
-    private fun processModifiedAssignments(frontmatters: List<Frontmatter>): AssessmentUpdater {
-        if (frontmatters.isEmpty()) return this
+    private fun modifyAssignments(frontmatters: List<Frontmatter>) {
+        if (frontmatters.isEmpty()) return
 
         val ids: List<Long> = frontmatters.map {
             it.id ?: throw IllegalStateException(
-                "Could not parse ID for modified question file at ${it.filePath}"
+                "Could not find ID for modified question file at ${it.originalFilePath}"
             )
         }
-        val existingAssignments: Map<Long, Assignment> = dbManager.findAssignmentsByIds(ids).associateBy(Assignment::id)
-        val differentAssignments: MutableList<Assignment> = mutableListOf()
+        val existingAssignments: Map<Long, Assignment> =
+            queryExecutor.findAssignmentsByIds(ids).associateBy(Assignment::id)
 
         for (frontmatter: Frontmatter in frontmatters) {
             val existingAssignment = existingAssignments[frontmatter.id]
                 ?: throw IllegalStateException(
                     "For modified file with ID ${frontmatter.id} there is no existing assignment in the database"
                 )
+            lateinit var updatedAssignment: Assignment
 
-            val updatedAssignment = frontmatter.toModifiedAssignment()
-            if (updatedAssignment.assignmentType != existingAssignment.assignmentType || updatedAssignment.filePath != existingAssignment.filePath) {
-                differentAssignments.add(existingAssignment)
+            if (!frontmatter.equalPersistentAttrs(existingAssignment)) {
+                updatedAssignment = createNewAssignment(frontmatter)
+                handleModifiedAssignment(frontmatter.id!!, updatedAssignment)
+            } else {
+                updatedAssignment = existingAssignment
             }
-            val existingTags = existingAssignment.sections.map { it.assessment!!.id.tag!! }
+
+            val existingTags = queryExecutor.getTagsOfLatestAssessmentsContainingAssignment(frontmatter.id!!)
             val addedTags: List<String> = frontmatter.tags - existingTags.toSet()
             addedTags.forEach { tag ->
                 addAssignmentToAssessment(getLatestAssessmentByTag(tag), updatedAssignment)
             }
             val removedTags: List<String> = existingTags - frontmatter.tags.toSet()
             removedTags.forEach { tag ->
-                deleteAssignmentFromAssessment(getLatestAssessmentByTag(tag), updatedAssignment.id)
+                deleteAssignmentFromAssessment(getLatestAssessmentByTag(tag), frontmatter.id!!)
             }
         }
-        return handleModifiedAssignments(differentAssignments)
     }
 
-    private fun handleModifiedAssignments(modifiedAssignments: List<Assignment>): AssessmentUpdater {
+    private fun handleModifiedAssignment(id: Long, newAssignment: Assignment) {
+        val affectedAssessments = queryExecutor.findAssessmentsByAssignmentId(id)
+        affectedAssessments.forEach { assessment ->
+            val tag = assessment.id.tag!!
+            val updatedAssessment = tagToNewAssessment.getOrPut(tag) {
+                assessment.copyWithoutCloningAssignments()
+            }
+            updatedAssessment.sections.forEach { section ->
+                section.assignments.replaceAll { oldAssignment ->
+                    if (oldAssignment.id == id) newAssignment else oldAssignment
+                }
+            }
+        }
+    }
 
-        modifiedAssignments.forEach { changedAssignment ->
-            val affectedAssessments = dbManager.findAssessmentsByAssignmentId(changedAssignment.id)
+    private fun addAssignments(frontmatters: List<Frontmatter>) {
+        frontmatters.forEach { frontmatter ->
+            if (frontmatter.id != null) throw FileParsingException(
+                "Added files should not have a qid in their filename",
+                frontmatter.originalFilePath
+            )
+            val affectedAssessments = frontmatter.tags.map { tag -> getLatestAssessmentByTag(tag) }
             affectedAssessments.forEach { assessment ->
-                val tag = assessment.id.tag ?: throw IllegalStateException("Retrieved null tag from Assessments table")
-                val updatedAssessment = tagToUpdatedAssessment.getOrPut(tag) {
+                val tag = assessment.id.tag!!
+                val updatedAssessment = tagToNewAssessment.getOrPut(tag) {
                     assessment.copyWithoutCloningAssignments()
                 }
-                updatedAssessment.sections.forEach { section ->
-                    section.assignments.replaceAll {
-                        if (it.id == changedAssignment.id) changedAssignment.apply { it.id = 0 } else it
+                val newAssignment = createNewAssignment(frontmatter)
+                val affectedSections = updatedAssessment.sections.filter { oldSection ->
+                    oldSection.title == newAssignment.sectionTitle
+                }
+                if (affectedSections.isNotEmpty()) {
+                    affectedSections.forEach { oldSection ->
+                        oldSection.addAssignment(newAssignment)
                     }
+                } else {
+                    assessment.addSection(Section(title = newAssignment.sectionTitle).apply {
+                        addAssignment(newAssignment)
+                    })
                 }
             }
         }
-        return this
     }
 
-    private fun handleAddedAssignments(addedAssignments: List<Assignment>): AssessmentUpdater {
-        val newAssessments = mutableListOf<Assessment>()
-        addedAssignments.forEach { assignment ->
-            val assessments = dbManager.findAssessmentsByAssignmentIds(listOfNotNull(assignment.id))
-            assessments.forEach { assessment ->
-                val newSections = assessment.sections.map { section ->
-                    Section(
-                        title = section.title,
-                        assignments = section.assignments.toMutableList().apply { add(assignment) }
-                    )
-                }
-                newAssessments.add(Assessment(AssessmentID(assessment.id.tag, commitHash), newSections.toMutableList()))
-            }
+    private fun updateNewAssignmentFileNames() {
+        frontmatterToNewAssignment.forEach { (frontmatter, assignment) ->
+            val existingFile = File(frontmatter.originalFilePath)
+            val newFilename = QuestionIDUtil.injectQuestionID(assignment.baseFilePath!!, assignment.id)
+            existingFile.renameTo(File(newFilename))
         }
-        return this
     }
 
-    private fun Frontmatter.toModifiedAssignment(): Assignment {
-        if (filePath == null) {
-            throw IllegalStateException("Frontmatter object must have filepath before being converted to modified Assignment")
-        }
-        val assignmentType = AssignmentType.valueOf(type)
-        return id?.let { Assignment(id = it, filePath = filePath, assignmentType = assignmentType) }
-            ?: throw IllegalStateException("Frontmatter object must have id before being converted to modified Assignment")
-    }
-
-    private fun Frontmatter.toNewAssignment(): Assignment {
-        if (filePath == null) {
-            throw IllegalStateException("Frontmatter object must have filepath before being converted to entity")
-        }
-        val assignmentType = AssignmentType.valueOf(type)
-        return Assignment(filePath = filePath, assignmentType = assignmentType)
+    private fun createNewAssignment(frontmatter: Frontmatter): Assignment {
+        val assignmentType = AssignmentType.fromString(frontmatter.type)
+        val newAssignment = Assignment(
+            baseFilePath = frontmatter.baseFilePath,
+            assignmentType = assignmentType,
+            availablePoints = frontmatter.availablePoints
+        )
+        frontmatterToNewAssignment[frontmatter] = newAssignment
+        return newAssignment
     }
 
     private fun Assessment.copyWithoutCloningAssignments(): Assessment {
         val newAssessment = Assessment(
             id = AssessmentID(this.id.tag, commitHash),
             sections = mutableListOf(), // Temporarily empty; will be populated below
+            latest = true
         )
         val clonedSections = sections.map { section ->
-            //TODO check if these sections are loaded or not.
             Section(
                 title = section.title,
                 assignments = section.assignments.toMutableList() // Retain original assignment references
             ).also { it.assessment = newAssessment } // Point to the new assessment
         }
         newAssessment.sections.addAll(clonedSections)
+        this.latest = false
         return newAssessment
+    }
+
+    private fun Frontmatter.equalPersistentAttrs(assignment: Assignment): Boolean {
+        val type = AssignmentType.fromString(this.type)
+        return this.id == assignment.id && this.originalFilePath == assignment.baseFilePath && type == assignment.assignmentType
     }
 
     private fun parseAssignments(filenames: List<String>): List<Frontmatter> {
         return filenames.map { filename ->
-            parser.parseQuestion(filename)
+            parser.parse(FileInputStream(filename).bufferedReader(), filename).first
         }
     }
 }
