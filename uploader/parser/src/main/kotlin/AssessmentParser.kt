@@ -1,7 +1,5 @@
-package ut.isep
-
 import parser.QuestionParser
-import question.Question
+import parser.question.Question
 import ut.isep.management.model.entity.Assessment
 import ut.isep.management.model.entity.AssessmentID
 import ut.isep.management.model.entity.Section
@@ -17,6 +15,9 @@ class AssessmentParser(private val questionDir: File, private val parser: Questi
         } ?: emptyArray()
     }
 
+    /**
+     * @throws QuestionParsingException
+     */
     private fun parseMarkDownFilesInDir(
         questionDir: File
     ): Map<String, Section> {
@@ -43,7 +44,10 @@ class AssessmentParser(private val questionDir: File, private val parser: Questi
         )
     }
 
-    fun parseAll(commitHash: String): List<Assessment> {
+    /**
+     * @throws QuestionParsingException
+     */
+    fun parseAll(commitHash: String? = null): List<Assessment> {
         val questionDirs = getQuestionDirectories()
         val tagsToSections: Map<String, List<Section>> = questionDirs.map { questionDir ->
             parseMarkDownFilesInDir(questionDir)
@@ -53,7 +57,7 @@ class AssessmentParser(private val questionDir: File, private val parser: Questi
 
         return tagsToSections.map { (tag, sections) ->
             val assessment =
-                Assessment(AssessmentID(tag = tag, gitCommitHash = commitHash), sections = sections.toMutableList())
+                Assessment(AssessmentID(tag = tag, gitCommitHash = commitHash), sections = sections.toMutableList(), latest = true)
             assessment.sections.forEach { section ->
                 section.assessment = assessment
             }
