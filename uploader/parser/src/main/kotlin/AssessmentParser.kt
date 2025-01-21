@@ -23,9 +23,15 @@ class AssessmentParser(private val questionDir: File, private val parser: Questi
     ): Map<String, Section> {
         val topic = questionDir.name
         val mdFiles = questionDir.listFiles { file -> file.extension == "md" } ?: emptyArray()
-        val questions: List<Question> = mdFiles.map { mdFile ->
-            parser.parse(FileInputStream(mdFile).bufferedReader(), mdFile.name)
-        }
+        val questions: MutableList<Question> = mdFiles.map { mdFile ->
+            FileInputStream(mdFile).bufferedReader().use {br ->
+                parser.parse(br, mdFile.path)
+            }
+        }.toMutableList()
+        val codingDirs = questionDir.listFiles {file -> file.isDirectory} ?: emptyArray()
+        questions.addAll(codingDirs.map { codingDir ->
+            parser.parseCodingDirectory(codingDir)
+        })
         val questionsByTag = questions.flatMap { question ->
             question.tags.map { tag -> tag to question }
         }.groupBy({ it.first }, { it.second })
