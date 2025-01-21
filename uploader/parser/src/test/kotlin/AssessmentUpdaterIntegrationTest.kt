@@ -51,7 +51,7 @@ class AssessmentUpdaterIntegrationTest : BaseIntegrationTest() {
 
         // Act
         val assessmentUpdater =
-            AssessmentUpdater(sessionFactory, Config(listOf("tag1"), listOf("multiple-choice")), "commitHash")
+            AssessmentUpdater(sessionFactory, "commitHash")
         assessmentUpdater.updateAssessments(addedFilenames = (listOf(testFile.path)))
         // Assert an assignment was uploaded
         val retrievedAssignment = TestQueryHelper.fetchSingle<Assignment>(session) ?: fail("Expected one assignment")
@@ -91,7 +91,7 @@ class AssessmentUpdaterIntegrationTest : BaseIntegrationTest() {
 
         // When
         println("assignment id :${assignment.id}")
-        val assessmentUpdater = AssessmentUpdater(sessionFactory, Config(listOf("tag2"), listOf("open")), "commitHash")
+        val assessmentUpdater = AssessmentUpdater(sessionFactory, "commitHash")
 
         assessmentUpdater.updateAssessments(deletedFilenames = listOf("file2_qid${assignment.id}.md"))
 
@@ -127,7 +127,7 @@ class AssessmentUpdaterIntegrationTest : BaseIntegrationTest() {
         """.trimIndent()
         val testFile = createTestFile(topic, filename, content)
 
-        val assessmentUpdater = AssessmentUpdater(sessionFactory, Config(listOf("tag3"), listOf("open")), "commitHash")
+        val assessmentUpdater = AssessmentUpdater(sessionFactory, "commitHash")
 
         // When
         assessmentUpdater.updateAssessments(modifiedFilenames = listOf(testFile.path))
@@ -153,10 +153,10 @@ class AssessmentUpdaterIntegrationTest : BaseIntegrationTest() {
         TestQueryHelper.persistEntity(existingInactiveAssessment, session)
         TestQueryHelper.persistEntity(existingActiveAssessment, session)
         val config = Config(tagOptions = listOf("newAssessment"), questionOptions = listOf("open", "multipleChoice"))
-        val assessmentUpdater = AssessmentUpdater(sessionFactory, config, "newCommitHash")
+        val assessmentUpdater = AssessmentUpdater(sessionFactory, "newCommitHash")
 
         // Act: Assessmentupdater updates the database to upload an assessment with the active tag
-        assessmentUpdater.updateAssessments(isConfigModified = true)
+        assessmentUpdater.updateAssessments(config = config)
         session.close()
         val session = sessionFactory.openSession()
         // Assert: we find one active and one inactive assessment, sharing a tag (but not commit hashes)
@@ -210,7 +210,7 @@ class AssessmentUpdaterIntegrationTest : BaseIntegrationTest() {
         val testFile = createTestFile(topic, filename, content)
 
         val assessmentUpdater =
-            AssessmentUpdater(sessionFactory, Config(listOf("tag4"), listOf("multiple-choice")), "commitHash")
+            AssessmentUpdater(sessionFactory, "commitHash")
 
         // When
         assessmentUpdater.updateAssessments(modifiedFilenames = listOf(testFile.path))
@@ -236,7 +236,7 @@ class AssessmentUpdaterIntegrationTest : BaseIntegrationTest() {
         session.close()
 
         // Act: Create AssessmentUpdater and call updateHash
-        val assessmentUpdater = AssessmentUpdater(sessionFactory, Config(listOf("tag1", "tag2"), listOf("multiple-choice")), oldHash)
+        val assessmentUpdater = AssessmentUpdater(sessionFactory, oldHash)
         assessmentUpdater.updateHash(newHash)
         val session = sessionFactory.openSession()
         // Assert: Verify that both assessments have their commit hash updated
@@ -253,7 +253,7 @@ class AssessmentUpdaterIntegrationTest : BaseIntegrationTest() {
         val nonExistingHash = "nonexistenthash"
 
         // Act: Call updateHash with a hash that doesn't exist in the database
-        val assessmentUpdater = AssessmentUpdater(sessionFactory, Config(listOf("tag1", "tag2"), listOf("multiple-choice")), nonExistingHash)
+        val assessmentUpdater = AssessmentUpdater(sessionFactory, nonExistingHash)
         assessmentUpdater.updateHash("newhash1234")  // This should do nothing but not fail
 
         // Assert: No assessments should be changed
@@ -277,7 +277,7 @@ class AssessmentUpdaterIntegrationTest : BaseIntegrationTest() {
         TestQueryHelper.persistEntity(assessment3, session)
 
         // Act: Call updateHash to change the hash
-        val assessmentUpdater = AssessmentUpdater(sessionFactory, Config(listOf("tag1", "tag2", "tag3"), listOf("multiple-choice")), oldHash)
+        val assessmentUpdater = AssessmentUpdater(sessionFactory, oldHash)
         assessmentUpdater.updateHash(newHash)
 
         // Assert: Verify all three assessments have their commit hash updated
@@ -301,7 +301,7 @@ class AssessmentUpdaterIntegrationTest : BaseIntegrationTest() {
         TestQueryHelper.persistEntity(inactiveAssessment, session)
 
         // Act: Call updateHash
-        val assessmentUpdater = AssessmentUpdater(sessionFactory, Config(listOf("tag1", "tag2"), listOf("multiple-choice")), oldHash)
+        val assessmentUpdater = AssessmentUpdater(sessionFactory, oldHash)
         assessmentUpdater.updateHash(newHash)
         session.close()
         val session = sessionFactory.openSession()

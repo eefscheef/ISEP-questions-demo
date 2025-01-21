@@ -9,10 +9,9 @@ import java.io.FileInputStream
 
 class AssessmentUpdater(
     private val sessionFactory: SessionFactory,
-    private val config: Config,
     private val commitHash: String
 ) {
-    private val parser = FrontmatterParser(config)
+    private val parser = FrontmatterParser()
     private val queryExecutor: QueryExecutor by lazy { QueryExecutor(sessionFactory.openSession()) }
     private val tagToNewAssessment: MutableMap<String, Assessment> = mutableMapOf()
     private val frontmatterToNewAssignment: MutableMap<Frontmatter, Assignment> = mutableMapOf()
@@ -21,13 +20,13 @@ class AssessmentUpdater(
         addedFilenames: List<String> = listOf(),
         deletedFilenames: List<String> = listOf(),
         modifiedFilenames: List<String> = listOf(),
-        isConfigModified: Boolean = false,
+        config: Config? = null,
     ) {
         tagToNewAssessment.clear()
         frontmatterToNewAssignment.clear()
         queryExecutor.withTransaction {
-            if (isConfigModified) {
-                updateConfig()
+            if (config != null) {
+                updateConfig(config)
             }
             if (addedFilenames.isNotEmpty()) {
                 addAssignments(parseAssignments(addedFilenames))
@@ -54,7 +53,7 @@ class AssessmentUpdater(
         queryExecutor.closeSession()
     }
 
-    private fun updateConfig() {
+    private fun updateConfig(config: Config) {
         val currentActiveAssessmentsByTag: Map<String, Assessment> =
             queryExecutor.getLatestAssessments().associateBy { it.id.tag!! }
         val currentTags: Set<String> = currentActiveAssessmentsByTag.keys

@@ -39,7 +39,6 @@ class AssessmentParser(private val questionDir: File, private val parser: Questi
         }
 
         questions.addAll(codingQuestions)
-
         val questionsByTag = questions.flatMap { question ->
             question.tags.map { tag -> tag to question }
         }.groupBy({ it.first }, { it.second })

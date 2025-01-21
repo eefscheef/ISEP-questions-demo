@@ -1,7 +1,9 @@
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
 import parser.Config
+import parser.FrontmatterParser
 import parser.QuestionParser
+import parser.TagValidator
 import java.io.File
 import kotlin.system.exitProcess
 
@@ -43,7 +45,10 @@ private fun printUsageAndExit(): Nothing {
 }
 
 private fun validateAll() {
-    AssessmentParser(File("questions"), QuestionParser(config)).parseAll()
+    val validator = TagValidator(config)
+    val frontmatterParser = FrontmatterParser(validator)
+    val questionParser = QuestionParser(frontmatterParser)
+    AssessmentParser(File("questions"), questionParser).parseAll()
     println("All questions validated")
 }
 
@@ -55,7 +60,9 @@ fun handleValidateCommand(processEntireRepo: Boolean, files: List<String>) {
     files.forEach { filename ->
         try {
             if (File(filename).extension == "md") {
-                QuestionParser(config).parseFile(File(filename))
+                val validator = TagValidator(config)
+                val frontmatterParser = FrontmatterParser(validator)
+                QuestionParser(frontmatterParser).parseFile(File(filename))
                 println("Question in $filename validated")
             } else {
                 println("Non-markdown file $filename ignored")
@@ -68,7 +75,7 @@ fun handleValidateCommand(processEntireRepo: Boolean, files: List<String>) {
 
 private fun uploadAll(commitHash: String) {
 
-    val assessmentProcessor = AssessmentParser(File("../questions"), QuestionParser(config))
+    val assessmentProcessor = AssessmentParser(File("../questions"), QuestionParser())
 
     val databaseConfig = DatabaseConfiguration(AzureDatabaseConfigProvider())
     val dataSource = databaseConfig.createDataSource()
@@ -113,7 +120,7 @@ fun handleHashCommand(arguments: List<String>) {
     val databaseConfig = DatabaseConfiguration(AzureDatabaseConfigProvider())
     val dataSource = databaseConfig.createDataSource()
     val sessionFactory = databaseConfig.createSessionFactory(dataSource)
-    val assessmentUpdater = AssessmentUpdater(sessionFactory, config, arguments[1])
+    val assessmentUpdater = AssessmentUpdater(sessionFactory, arguments[1])
     assessmentUpdater.updateHash(arguments[3])
 }
 
@@ -203,8 +210,9 @@ fun upload(arguments: Arguments) {
     val sessionFactory = databaseConfig.createSessionFactory(dataSource)
 
     val (deletedFiles, addedFiles, updatedFiles, commitHash, isConfigChanged) = arguments
+    val changedConfig = if (isConfigChanged) config else null
 
-    val updater = AssessmentUpdater(sessionFactory, config, commitHash ?: printUsageAndExit())
+    val updater = AssessmentUpdater(sessionFactory, commitHash ?: printUsageAndExit())
     validateUploadArguments(arguments)
     println("Uploading changes:")
 
@@ -217,5 +225,5 @@ fun upload(arguments: Arguments) {
     if (updatedFiles.isNotEmpty()) {
         println("Updated files: ${arguments.updatedFiles}")
     }
-    updater.updateAssessments(addedFiles, deletedFiles, updatedFiles, isConfigChanged)
+    updater.updateAssessments(addedFiles, deletedFiles, updatedFiles, changedConfig)
 }
