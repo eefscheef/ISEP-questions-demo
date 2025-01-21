@@ -5,7 +5,6 @@ import parser.FrontmatterParser
 import parser.QuestionIDUtil
 import ut.isep.management.model.entity.*
 import java.io.File
-import java.io.FileInputStream
 
 class AssessmentUpdater(
     private val sessionFactory: SessionFactory,
@@ -260,7 +259,7 @@ class AssessmentUpdater(
 
     private fun parseAssignments(filenames: List<String>): List<Frontmatter> {
         return filenames.map { filename ->
-            parser.parse(FileInputStream(filename).bufferedReader(), filename).first
+            parser.parse(File(filename).readText(), filename).first
         }
     }
 }
