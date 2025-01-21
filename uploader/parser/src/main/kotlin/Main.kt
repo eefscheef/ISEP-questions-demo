@@ -3,7 +3,6 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
 import parser.Config
 import parser.QuestionParser
 import java.io.File
-import java.io.FileInputStream
 import kotlin.system.exitProcess
 
 
@@ -55,8 +54,12 @@ fun handleValidateCommand(processEntireRepo: Boolean, files: List<String>) {
     }
     files.forEach { filename ->
         try {
-            QuestionParser(config).parse(FileInputStream(filename).bufferedReader(), filename)
-            println("Question in $filename validated")
+            if (File(filename).extension == "md") {
+                QuestionParser(config).parseFile(File(filename))
+                println("Question in $filename validated")
+            } else {
+                println("Non-markdown file $filename ignored")
+            }
         } catch (e: QuestionParsingException) {
             throw FileParsingException("Invalid question file", filename, e)
         }
