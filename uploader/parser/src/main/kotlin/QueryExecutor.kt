@@ -107,6 +107,35 @@ class QueryExecutor(private val currentSession: Session) {
         return currentSession.createQuery(query).resultList
     }
 
+    fun getLatestAssessmentsByHash(hash: String): List<Assessment> {
+        val query = cb.createQuery(Assessment::class.java)
+        val assessmentRoot = query.from(Assessment::class.java)
+
+        // Get all latest=true assessments
+        query.select(assessmentRoot)
+            .where(
+                cb.and(
+                    assessmentRoot.get<AssessmentID>("id").get<String>("gitCommitHash").equalTo(hash),
+                    cb.equal(assessmentRoot.get<Boolean>("latest"), true)
+                )
+            )
+        return currentSession.createQuery(query).resultList
+    }
+
+    fun updateHashes(oldHash: String, newHash: String): Int {
+        val query = currentSession.createMutationQuery(
+            """
+        UPDATE Assessment a 
+        SET a.id.gitCommitHash = :newHash 
+        WHERE a.id.gitCommitHash = :oldHash
+        AND a.latest = TRUE
+        """
+        )
+        query.setParameter("newHash", newHash)
+        query.setParameter("oldHash", oldHash)
+        return query.executeUpdate()
+    }
+
     fun flush() = currentSession.flush()
 
     fun closeSession() = currentSession.close()

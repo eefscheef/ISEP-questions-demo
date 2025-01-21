@@ -1,8 +1,4 @@
-package ut.isep
-
-import Config
-import FileParsingException
-import QueryExecutor
+import parser.Config
 import org.hibernate.SessionFactory
 import parser.Frontmatter
 import parser.FrontmatterParser
@@ -17,8 +13,7 @@ class AssessmentUpdater(
     private val commitHash: String
 ) {
     private val parser = FrontmatterParser(config)
-
-    private lateinit var queryExecutor: QueryExecutor
+    private val queryExecutor: QueryExecutor by lazy { QueryExecutor(sessionFactory.openSession()) }
     private val tagToNewAssessment: MutableMap<String, Assessment> = mutableMapOf()
     private val frontmatterToNewAssignment: MutableMap<Frontmatter, Assignment> = mutableMapOf()
 
@@ -28,7 +23,6 @@ class AssessmentUpdater(
         modifiedFilenames: List<String> = listOf(),
         isConfigModified: Boolean = false,
     ) {
-        queryExecutor = QueryExecutor(sessionFactory.openSession())
         tagToNewAssessment.clear()
         frontmatterToNewAssignment.clear()
         queryExecutor.withTransaction {
@@ -49,6 +43,13 @@ class AssessmentUpdater(
             }
             upload()
             updateNewAssignmentFileNames()
+        }
+        queryExecutor.closeSession()
+    }
+
+    fun updateHash(newHash: String) {
+        queryExecutor.withTransaction {
+            updateHashes(commitHash, newHash)
         }
         queryExecutor.closeSession()
     }
@@ -88,7 +89,7 @@ class AssessmentUpdater(
     private fun deleteAssignments(deletedQuestionIds: List<Long>) {
         if (deletedQuestionIds.isEmpty()) return
 
-        val assessmentsToUpdate = queryExecutor.findAssessmentsByAssignmentIds(deletedQuestionIds)
+        val assessmentsToUpdate = queryExecutor.getLatestAssessmentByAssignmentIds(deletedQuestionIds)
         assessmentsToUpdate.forEach { assessment ->
             deletedQuestionIds.forEach { deletedQuestionId ->
                 deleteAssignmentFromAssessment(assessment, deletedQuestionId)
@@ -251,7 +252,7 @@ class AssessmentUpdater(
             ).also { it.assessment = newAssessment } // Point to the new assessment
         }
         newAssessment.sections.addAll(clonedSections)
-        this.latest = false
+        this.latest = false // copied assignment is no longer latest
         return newAssessment
     }
 
