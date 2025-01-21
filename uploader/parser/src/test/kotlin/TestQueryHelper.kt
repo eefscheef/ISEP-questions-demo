@@ -12,7 +12,7 @@ object TestQueryHelper {
         return session.createQuery(query).resultList
     }
 
-    inline fun <reified T> fetchSingle(session: Session): T? {
+    inline fun <reified T : BaseEntity<*>> fetchSingle(session: Session): T? {
         val cb = session.criteriaBuilder
         val query = cb.createQuery(T::class.java)
         query.select(query.from(T::class.java))
