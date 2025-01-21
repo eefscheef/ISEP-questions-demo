@@ -229,10 +229,9 @@ class AssessmentUpdater(
     }
 
     private fun createNewAssignment(frontmatter: Frontmatter): Assignment {
-        val assignmentType = AssignmentType.fromString(frontmatter.type)
         val newAssignment = Assignment(
             baseFilePath = frontmatter.baseFilePath,
-            assignmentType = assignmentType,
+            assignmentType = frontmatter.type,
             availablePoints = frontmatter.availablePoints
         )
         frontmatterToNewAssignment[frontmatter] = newAssignment
@@ -257,7 +256,6 @@ class AssessmentUpdater(
     }
 
     private fun Frontmatter.equalPersistentAttrs(assignment: Assignment): Boolean {
-        val type = AssignmentType.fromString(this.type)
         return this.id == assignment.id && this.originalFilePath == assignment.baseFilePath && type == assignment.assignmentType
     }
 
