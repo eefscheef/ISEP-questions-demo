@@ -1,6 +1,5 @@
 package ut.isep
 
-import QueryExecutor
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import ut.isep.management.model.entity.*
@@ -127,7 +126,7 @@ class QueryExecutorTest : BaseIntegrationTest() {
         TestQueryHelper.persistEntity(assessment, session)
 
         // Act
-        val result = queryExecutor.findAssessmentsByAssignmentIds(listOf(assignment1.id, assignment2.id))
+        val result = queryExecutor.getLatestAssessmentByAssignmentIds(listOf(assignment1.id, assignment2.id))
 
         // Assert
         assertEquals(1, result.size, "Expected 1 assessment associated with the given assignments")
@@ -193,5 +192,62 @@ class QueryExecutorTest : BaseIntegrationTest() {
         assertEquals(2, result.size, "Expected 2 assignments in the result")
         assertTrue(result.any { it.baseFilePath == "test1" }, "Expected assignment1 in the result")
         assertTrue(result.any { it.baseFilePath == "test2" }, "Expected assignment2 in the result")
+    }
+
+    @Test
+    fun `test getLatestAssessmentsByHash returns correct assessments for valid hash`() {
+        // Arrange
+        val hash = "somehash1234"
+        val validAssessment = Assessment(
+            id = AssessmentID(tag = "testTag", gitCommitHash = hash),
+            latest = true
+        )
+        val invalidAssessment = Assessment(
+            id = AssessmentID(tag = "testTag", gitCommitHash = "otherhash"),
+            latest = true
+        )
+
+        // Persist the assessments
+        TestQueryHelper.persistEntity(validAssessment, session)
+        TestQueryHelper.persistEntity(invalidAssessment, session)
+
+        // Act
+        val result = queryExecutor.getLatestAssessmentsByHash(hash)
+
+        // Assert
+        assertEquals(1, result.size, "Expected only one assessment with the provided hash and latest=true")
+        assertEquals(validAssessment.id.tag, result[0].id.tag, "Expected the valid assessment")
+        assertTrue(result[0].latest, "Expected the returned assessment to be marked as latest")
+    }
+
+    @Test
+    fun `test getLatestAssessmentsByHash returns empty list for non-existing hash`() {
+        // Arrange
+        val nonExistingHash = "nonexistenthash"
+
+        // Act
+        val result = queryExecutor.getLatestAssessmentsByHash(nonExistingHash)
+
+        // Assert
+        assertTrue(result.isEmpty(), "Expected an empty list for a non-existing hash")
+    }
+
+
+    @Test
+    fun `test getLatestAssessmentsByHash excludes assessments where latest is false`() {
+        // Arrange
+        val hash = "somehash1234"
+        val oldAssessment = Assessment(
+            id = AssessmentID(tag = "testTag", gitCommitHash = hash),
+            latest = false
+        )
+
+        TestQueryHelper.persistEntity(oldAssessment, session)
+
+        // Act
+        val result = queryExecutor.getLatestAssessmentsByHash(hash)
+
+        // Assert
+        assertEquals(0, result.size, "Expected zero assessments with latest=true")
     }
 }

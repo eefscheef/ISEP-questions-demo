@@ -48,9 +48,10 @@ class QueryExecutor(private val currentSession: Session) {
         return currentSession.createQuery(query).resultList
     }
 
-    fun findAssessmentsByAssignmentIds(
-        assignmentIds: List<Long>)
-    : List<Assessment> {
+    fun getLatestAssessmentByAssignmentIds(
+        assignmentIds: List<Long>
+    )
+            : List<Assessment> {
         if (assignmentIds.isEmpty()) return emptyList()
 
         val query = cb.createQuery(Assessment::class.java)
@@ -58,13 +59,19 @@ class QueryExecutor(private val currentSession: Session) {
         val sectionJoin = assessmentRoot.join<Assessment, Section>("sections")
         val assignmentJoin = sectionJoin.join<Section, Assignment>("assignments")
         query.select(assessmentRoot).distinct(true)
-            .where(assignmentJoin.get<Long>("id").`in`(assignmentIds))
+            .where(
+                cb.and(
+                    assignmentJoin.get<Long>("id").`in`(assignmentIds)
+                ),
+                cb.equal(assessmentRoot.get<Boolean>("latest"), true)
+            )
+
 
         return currentSession.createQuery(query).resultList
     }
 
     fun findAssessmentsByAssignmentId(assignmentId: Long): List<Assessment> {
-        return findAssessmentsByAssignmentIds(listOf(assignmentId))
+        return getLatestAssessmentByAssignmentIds(listOf(assignmentId))
     }
 
     fun findAssignmentsByIds(assignmentIds: List<Long>): List<Assignment> {
