@@ -1,8 +1,7 @@
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
+import parser.Config
 import parser.QuestionParser
-import ut.isep.AssessmentParser
-import ut.isep.AssessmentUpdater
 import java.io.File
 import java.io.FileInputStream
 import kotlin.system.exitProcess
@@ -11,8 +10,9 @@ import kotlin.system.exitProcess
 const val USAGE = """
 Usage:
   validate [--all] [<file>...]
-  upload [--deleted <file>...] [--added <file>...] [--updated <file>...] --commit <hash> --config
-  reset --commit <hash>
+  upload [--deleted <file>...] [--added <file>...] [--updated <file>...] [--config]
+  hash --old-commit <hash> --new-commit <hash>
+  reset
  
 
 Options:
@@ -24,6 +24,7 @@ Options:
 Commands:
   validate      Validate the specified question files.
   upload        Parse the specified files and upload them to the database. Requires a commit hash using `--commit <hash>`.
+  hash          Provide the uploaded assessments with the latest commit hash. 
   reset         CLEARS THE DATABASE OF ASSESSMENTS. Then parses the entire repository and uploads the found assessments.
 
 Arguments:
@@ -43,13 +44,19 @@ private fun printUsageAndExit(): Nothing {
 }
 
 private fun validateAll() {
-
+    AssessmentParser(File("questions"), QuestionParser(config)).parseAll()
+    println("All questions validated")
 }
 
 fun handleValidateCommand(processEntireRepo: Boolean, files: List<String>) {
+    if (processEntireRepo) {
+        validateAll()
+        return
+    }
     files.forEach { filename ->
         try {
             QuestionParser(config).parse(FileInputStream(filename).bufferedReader(), filename)
+            println("Question in $filename validated")
         } catch (e: QuestionParsingException) {
             throw FileParsingException("Invalid question file", filename, e)
         }
@@ -58,7 +65,7 @@ fun handleValidateCommand(processEntireRepo: Boolean, files: List<String>) {
 
 private fun uploadAll(commitHash: String) {
 
-    val assessmentProcessor = AssessmentParser(File("."), QuestionParser(config))
+    val assessmentProcessor = AssessmentParser(File("../questions"), QuestionParser(config))
 
     val databaseConfig = DatabaseConfiguration(AzureDatabaseConfigProvider())
     val dataSource = databaseConfig.createDataSource()
@@ -89,10 +96,22 @@ fun main(args: Array<String>) {
         "help", "--help", "-h" -> printUsageAndExit()
         "validate" -> handleValidateCommand(processEntireRepo, arguments)
         "upload" -> handleUploadCommand(arguments)
+        "hash" -> handleHashCommand(arguments)
         "reset" -> handleResetCommand(arguments)
         else -> printUsageAndExit()
     }
     exitProcess(0)
+}
+
+fun handleHashCommand(arguments: List<String>) {
+    if (arguments.size != 4 || arguments[0] != "--old-commit" || arguments[2] != "--new-commit") {
+        printUsageAndExit()
+    }
+    val databaseConfig = DatabaseConfiguration(AzureDatabaseConfigProvider())
+    val dataSource = databaseConfig.createDataSource()
+    val sessionFactory = databaseConfig.createSessionFactory(dataSource)
+    val assessmentUpdater = AssessmentUpdater(sessionFactory, config, arguments[1])
+    assessmentUpdater.updateHash(arguments[3])
 }
 
 
