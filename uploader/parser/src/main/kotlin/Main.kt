@@ -198,8 +198,8 @@ data class Arguments(
 
 fun validateUploadArguments(arguments: Arguments) {
     if (arguments.deletedFiles.isEmpty() && arguments.addedFiles.isEmpty() && arguments.updatedFiles.isEmpty()) {
-        println("Error: At least one of --deleted, --added, or --updated must be provided with files.")
-        printUsageAndExit()
+        println("No files provided. Exiting.")
+        exitProcess(0)
     }
 }
 
