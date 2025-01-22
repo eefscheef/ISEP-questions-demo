@@ -53,7 +53,7 @@ jobs:
           echo "upload ${config_flag} --added ${added_files} --updated ${updated_files} --deleted ${deleted_files} --commit ${old_hash}"
 
           ./gradlew build
-          ./gradlew run --debug --args="upload ${config_flag} --added ${added_files} --updated ${updated_files} --deleted ${deleted_files} --commit ${old_hash}"
+          ./gradlew run --args="upload ${config_flag} --added ${added_files} --updated ${updated_files} --deleted ${deleted_files} --commit ${old_hash}"
           cd ..
         env:
           JDBC_URL: ${{ secrets.JDBC_URL }}
