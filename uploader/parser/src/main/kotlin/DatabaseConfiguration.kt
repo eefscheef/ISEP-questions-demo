@@ -6,14 +6,26 @@ import org.hibernate.cfg.Configuration
 import javax.sql.DataSource
 import ut.isep.management.model.entity.*
 
-class DatabaseConfiguration {
+interface DatabaseConfigProvider {
+    fun getJdbcUrl(): String
+    fun getUsername(): String
+    fun getPassword(): String
+}
+
+class AzureDatabaseConfigProvider : DatabaseConfigProvider {
+    override fun getJdbcUrl(): String = System.getenv("JDBC_URL")
+        ?: "jdbc:postgresql://isep-test-database.postgres.database.azure.com:5432/postgres?sslmode=require"
+    override fun getUsername(): String = System.getenv("DB_USERNAME") ?: "default_user"
+    override fun getPassword(): String = System.getenv("DB_PASSWORD") ?: "default_password"
+}
+
+class DatabaseConfiguration(private val configProvider: DatabaseConfigProvider) {
     fun createDataSource(): DataSource {
         val config = HikariConfig().apply {
-            jdbcUrl = System.getenv("JDBC_URL")
-                ?: "jdbc:postgresql://isep-test-database.postgres.database.azure.com:5432/postgres?sslmode=require" //TODO remove once test with testcontainers added for local testing
+            jdbcUrl = configProvider.getJdbcUrl()
             driverClassName = "org.postgresql.Driver"
-            username = System.getenv("DB_USERNAME")
-            password = System.getenv("DB_PASSWORD")
+            username = configProvider.getUsername()
+            password = configProvider.getPassword()
             maximumPoolSize = 10
         }
         return HikariDataSource(config)
@@ -29,25 +41,21 @@ class DatabaseConfiguration {
             addAnnotatedClass(Applicant::class.java)
             addAnnotatedClass(Assessment::class.java)
             addAnnotatedClass(Assignment::class.java)
-            addAnnotatedClass(AssignmentCoding::class.java)
-            addAnnotatedClass(AssignmentMultipleChoice::class.java)
-            addAnnotatedClass(AssignmentOpen::class.java)
             addAnnotatedClass(Invite::class.java)
+            addAnnotatedClass(TimingPerSection::class.java)
             addAnnotatedClass(Section::class.java)
             addAnnotatedClass(SolvedAssignment::class.java)
             addAnnotatedClass(SolvedAssignmentCoding::class.java)
+            addAnnotatedClass(TestResult::class.java)
             addAnnotatedClass(SolvedAssignmentMultipleChoice::class.java)
             addAnnotatedClass(SolvedAssignmentOpen::class.java)
-
         }
 
-        // Build ServiceRegistry with the DataSource
         val serviceRegistry = StandardServiceRegistryBuilder()
             .applySetting("hibernate.connection.datasource", dataSource)
             .applySettings(configuration.properties)
             .build()
 
-        // Build the SessionFactory
         return configuration.buildSessionFactory(serviceRegistry)
     }
 }
