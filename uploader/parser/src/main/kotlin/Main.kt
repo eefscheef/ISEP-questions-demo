@@ -207,16 +207,7 @@ fun validateUploadArguments(arguments: Arguments) {
 fun upload(arguments: Arguments) {
     val (deletedFiles, addedFiles, updatedFiles, commitHash, isConfigChanged) = arguments
     val changedConfig = if (isConfigChanged) config else null
-
-    val databaseConfig = DatabaseConfiguration(AzureDatabaseConfigProvider())
-    val dataSource = databaseConfig.createDataSource()
-    val sessionFactory = databaseConfig.createSessionFactory(dataSource)
-
-
-    val updater = AssessmentUpdater(sessionFactory, commitHash ?: printUsageAndExit())
     validateUploadArguments(arguments)
-    println("Uploading changes:")
-
     if (addedFiles.isNotEmpty()) {
         println("Added files: ${arguments.addedFiles}")
     }
@@ -226,5 +217,14 @@ fun upload(arguments: Arguments) {
     if (updatedFiles.isNotEmpty()) {
         println("Updated files: ${arguments.updatedFiles}")
     }
+    val databaseConfig = DatabaseConfiguration(AzureDatabaseConfigProvider())
+    val dataSource = databaseConfig.createDataSource()
+    val sessionFactory = databaseConfig.createSessionFactory(dataSource)
+
+
+    val updater = AssessmentUpdater(sessionFactory, commitHash ?: printUsageAndExit())
+    println("Uploading changes:")
+
+
     updater.updateAssessments(addedFiles, deletedFiles, updatedFiles, changedConfig)
 }
