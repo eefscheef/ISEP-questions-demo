@@ -96,5 +96,5 @@ jobs:
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
 
       - name: Setup tmate session
-        if: ${{ failure() }}
+        if: ${{ failure() && runner_debug == '1' }}
         uses: mxschmitt/action-tmate@v3
