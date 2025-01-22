@@ -24,9 +24,14 @@ class QueryExecutor(private val currentSession: Session) {
         }
     }
 
-    fun <T: BaseEntity<*>> uploadEntities(entities: List<T>): List<T> {
+    fun <T: BaseEntity<*>> mergeEntities(entities: List<T>): List<T> {
         return entities.map { currentSession.merge(it) }
     }
+
+    fun <T: BaseEntity<*>> persistEntities(entities: List<T>) {
+        entities.forEach { currentSession.persist(it) }
+    }
+
 
     fun getTagsOfLatestAssessmentsContainingAssignment(assignmentId: Long): List<String> {
         val query = cb.createQuery(String::class.java)

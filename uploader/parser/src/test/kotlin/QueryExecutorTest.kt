@@ -40,7 +40,7 @@ class QueryExecutorTest : BaseIntegrationTest() {
 
         // Act
         queryExecutor.withTransaction {
-            queryExecutor.uploadEntities(listOf(assessment))
+            queryExecutor.mergeEntities(listOf(assessment))
         }
 
         // Assert assignments persisted correctly
@@ -80,7 +80,7 @@ class QueryExecutorTest : BaseIntegrationTest() {
 
         // Act
         queryExecutor.withTransaction {
-            uploadEntities(assignments)
+            mergeEntities(assignments)
         }
 
         // Assert

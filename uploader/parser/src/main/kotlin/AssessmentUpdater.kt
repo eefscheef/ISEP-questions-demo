@@ -78,10 +78,9 @@ class AssessmentUpdater(
         tagToNewAssessment.putAll(deletedAssessments)
     }
 
-    private fun upload() {
-        queryExecutor.uploadEntities(tagToNewAssessment.values.toList())
-        queryExecutor.flush()
-        return
+    private fun upload(): List<Assessment> {
+        queryExecutor.persistEntities(frontmatterToNewAssignment.values.toList())
+        return queryExecutor.mergeEntities(tagToNewAssessment.values.toList())
     }
 
     private fun deleteAssignments(deletedQuestionIds: List<Long>) {

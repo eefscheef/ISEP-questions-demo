@@ -84,7 +84,7 @@ private fun uploadAll(commitHash: String) {
     val queryExecutor = QueryExecutor(session)
     queryExecutor.withTransaction {
         clearDatabase()
-        uploadEntities(assessmentProcessor.parseAll(commitHash))
+        mergeEntities(assessmentProcessor.parseAll(commitHash))
     }
     queryExecutor.closeSession()
 }
