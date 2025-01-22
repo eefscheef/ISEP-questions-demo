@@ -27,8 +27,29 @@ jobs:
       - name: Identify Changed Files
         id: changed-files
         run: |
-          git diff --name-only HEAD^ HEAD questions > changed_files.txt
-          echo "files=$(cat changed_files.txt | tr '\n' ' ')" >> $GITHUB_ENV
+          git diff --name-status HEAD^ HEAD > changed_files.txt
+          added_files=$(awk '$1 == "A" && $2 ~ /^questions\// {print $2}' changed_files.txt | tr '\n' ' ')
+          updated_files=$(awk '$1 == "M" && $2 ~ /^questions\// {print $2}' changed_files.txt | tr '\n' ' ')
+          deleted_files=$(awk '$1 == "D" && $2 ~ /^questions\// {print $2}' changed_files.txt | tr '\n' ' ')
+          echo "added_files=${added_files}" >> $GITHUB_ENV
+          echo "updated_files=${updated_files}" >> $GITHUB_ENV
+          echo "deleted_files=${deleted_files}" >> $GITHUB_ENV
+          if grep -q '^M.*config.yaml' changed_files.txt; then
+          echo "config_flag=--config" >> $GITHUB_ENV
+          else
+          echo "config_flag=" >> $GITHUB_ENV
+          fi
+
+      - name: Build and Run Parser
+        run: |
+          cd uploader
+          ./gradlew build
+          ./gradlew run --args="upload ${config_flag} --added ${added_files} --updated ${updated_files} --deleted ${deleted_files}"
+          cd ..
+        env:
+          JDBC_URL: ${{ secrets.JDBC_URL }}
+          DB_USERNAME: ${{ secrets.DB_USERNAME }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
 
       - name: Build and Run Parser
         run: |
