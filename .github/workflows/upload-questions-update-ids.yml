@@ -7,7 +7,6 @@ on:
 
 jobs:
   update-ids:
-    if: false
     runs-on: ubuntu-latest
 
     steps:
@@ -36,8 +35,11 @@ jobs:
           cd uploader
           ./gradlew build
           ./gradlew run --args="upload $files"
+          cd ..
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          JDBC_URL: ${{ secrets.JDBC_URL }}
+          DB_USERNAME: ${{ secrets.DB_USERNAME }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
 
       - name: Check for File Changes
         id: check-diff
@@ -56,3 +58,19 @@ jobs:
           git add .
           git commit -m "Update IDs of changed/added question files"
           git push
+
+      - name: Get Commit Hash
+        id: get-commit-hash
+        if: env.changed == 'true'
+        run: echo "hash=$(git rev-parse HEAD)" >> $GITHUB_ENV
+
+      - name: Update assessments with newest
+        if: env.changed == 'true'
+        run: |
+          cd uploader
+          ./gradlew build
+          ./gradlew run --args="hash --commit $hash"
+        env:
+          JDBC_URL: ${{ secrets.JDBC_URL }}
+          DB_USERNAME: ${{ secrets.DB_USERNAME }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
