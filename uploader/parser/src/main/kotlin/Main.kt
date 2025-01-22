@@ -75,8 +75,8 @@ fun handleValidateCommand(processEntireRepo: Boolean, files: List<String>) {
 
 private fun uploadAll(commitHash: String) {
 
-    val assessmentProcessor = AssessmentParser(File("../questions"), QuestionParser())
 
+    val assessmentProcessor = AssessmentParser(File("questions"), QuestionParser())
     val databaseConfig = DatabaseConfiguration(AzureDatabaseConfigProvider())
     val dataSource = databaseConfig.createDataSource()
     val sessionFactory = databaseConfig.createSessionFactory(dataSource)
