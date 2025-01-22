@@ -171,7 +171,7 @@ fun parseUploadArguments(arguments: List<String>): Arguments {
                 if (arg.startsWith("--")) {
                     printUsageAndExit()
                 } else {
-                    currentList?.add(arg) ?: printUsageAndExit() // No option provided
+                    currentList?.add(arg) // No option provided
                 }
             }
         }
@@ -205,12 +205,13 @@ fun validateUploadArguments(arguments: Arguments) {
 
 
 fun upload(arguments: Arguments) {
+    val (deletedFiles, addedFiles, updatedFiles, commitHash, isConfigChanged) = arguments
+    val changedConfig = if (isConfigChanged) config else null
+
     val databaseConfig = DatabaseConfiguration(AzureDatabaseConfigProvider())
     val dataSource = databaseConfig.createDataSource()
     val sessionFactory = databaseConfig.createSessionFactory(dataSource)
 
-    val (deletedFiles, addedFiles, updatedFiles, commitHash, isConfigChanged) = arguments
-    val changedConfig = if (isConfigChanged) config else null
 
     val updater = AssessmentUpdater(sessionFactory, commitHash ?: printUsageAndExit())
     validateUploadArguments(arguments)
