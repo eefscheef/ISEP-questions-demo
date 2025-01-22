@@ -14,7 +14,7 @@ interface DatabaseConfigProvider {
 
 class AzureDatabaseConfigProvider : DatabaseConfigProvider {
     override fun getJdbcUrl(): String = System.getenv("JDBC_URL")
-        ?: "jdbc:postgresql://isep-test-database.postgres.database.azure.com:5432/postgres?sslmode=require"
+        ?: "jdbc:postgresql://isep-assessments.postgres.database.azure.com:5432/postgres?sslmode=require"
     override fun getUsername(): String = System.getenv("DB_USERNAME") ?: "default_user"
     override fun getPassword(): String = System.getenv("DB_PASSWORD") ?: "default_password"
 }
