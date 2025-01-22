@@ -47,6 +47,11 @@ jobs:
       - name: Build and Run Parser
         run: |
           cd uploader
+
+          # Echo the arguments to display them
+          echo "Running Gradle with the following arguments:"
+          echo "upload ${config_flag} --added ${added_files} --updated ${updated_files} --deleted ${deleted_files} --commit ${old_hash}"
+
           ./gradlew build
           ./gradlew run --debug --args="upload ${config_flag} --added ${added_files} --updated ${updated_files} --deleted ${deleted_files} --commit ${old_hash}"
           cd ..
@@ -54,6 +59,7 @@ jobs:
           JDBC_URL: ${{ secrets.JDBC_URL }}
           DB_USERNAME: ${{ secrets.DB_USERNAME }}
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+
 
       - name: Check for File Changes
         id: check-diff
