@@ -24,6 +24,10 @@ jobs:
           distribution: 'temurin'
           cache: 'gradle'
 
+      - name: Debug with SSH (tmate)
+        uses: mxschmitt/action-tmate@v3
+        if: always()
+
       - name: Get Old Commit Hash
         id: get-old-commit-hash
         run: echo "old_hash=$(git rev-parse HEAD)" >> $GITHUB_ENV
