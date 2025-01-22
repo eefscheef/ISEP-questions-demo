@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <root level="info">
+        <appender-ref ref="CONSOLE" />
+    </root>
+
+    <!-- Hibernate Logging Configuration -->
+    <logger name="org.hibernate" level="warn" />
+    <logger name="org.hibernate.SQL" level="warn" />
+    <logger name="org.hibernate.type.descriptor.sql.BasicBinder" level="warn" />
+</configuration>
