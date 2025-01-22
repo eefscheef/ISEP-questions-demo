@@ -24,6 +24,10 @@ jobs:
           distribution: 'temurin'
           cache: 'gradle'
 
+      - name: Get Old Commit Hash
+        id: get-old-commit-hash
+        run: echo "old_hash=$(git rev-parse HEAD)" >> $GITHUB_ENV
+
       - name: Identify Changed Files
         id: changed-files
         run: |
@@ -44,18 +48,7 @@ jobs:
         run: |
           cd uploader
           ./gradlew build
-          ./gradlew run --args="upload ${config_flag} --added ${added_files} --updated ${updated_files} --deleted ${deleted_files}"
-          cd ..
-        env:
-          JDBC_URL: ${{ secrets.JDBC_URL }}
-          DB_USERNAME: ${{ secrets.DB_USERNAME }}
-          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-
-      - name: Build and Run Parser
-        run: |
-          cd uploader
-          ./gradlew build
-          ./gradlew run --args="upload $files"
+          ./gradlew run --args="upload ${config_flag} --added ${added_files} --updated ${updated_files} --deleted ${deleted_files} --commit ${old_hash}"
           cd ..
         env:
           JDBC_URL: ${{ secrets.JDBC_URL }}
@@ -80,17 +73,17 @@ jobs:
           git commit -m "Update IDs of changed/added question files"
           git push
 
-      - name: Get Commit Hash
-        id: get-commit-hash
+      - name: Get New Commit Hash
+        id: get-new-commit-hash
         if: env.changed == 'true'
-        run: echo "hash=$(git rev-parse HEAD)" >> $GITHUB_ENV
+        run: echo "new_hash=$(git rev-parse HEAD)" >> $GITHUB_ENV
 
       - name: Update assessments with newest
         if: env.changed == 'true'
         run: |
           cd uploader
           ./gradlew build
-          ./gradlew run --args="hash --commit $hash"
+          ./gradlew run --args="hash --old-commit $old_hash --new-commit $new_hash"
         env:
           JDBC_URL: ${{ secrets.JDBC_URL }}
           DB_USERNAME: ${{ secrets.DB_USERNAME }}
