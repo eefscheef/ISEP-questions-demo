@@ -133,6 +133,7 @@ class AssessmentUpdater(
     }
 
     private fun getLatestAssessmentByTag(assessmentTag: String): Assessment {
+        println("Finding latest assessment for tag $assessmentTag")
         return tagToNewAssessment[assessmentTag]
             ?: queryExecutor.getLatestAssessment(assessmentTag)
     }
