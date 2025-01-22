@@ -48,7 +48,7 @@ jobs:
         run: |
           cd uploader
           ./gradlew build
-          ./gradlew run --args="upload ${config_flag} --added ${added_files} --updated ${updated_files} --deleted ${deleted_files} --commit ${old_hash}"
+          ./gradlew run --debug --args="upload ${config_flag} --added ${added_files} --updated ${updated_files} --deleted ${deleted_files} --commit ${old_hash}"
           cd ..
         env:
           JDBC_URL: ${{ secrets.JDBC_URL }}
@@ -78,7 +78,7 @@ jobs:
         if: env.changed == 'true'
         run: echo "new_hash=$(git rev-parse HEAD)" >> $GITHUB_ENV
 
-      - name: Update assessments with newest
+      - name: Update assessments with newest hash
         if: env.changed == 'true'
         run: |
           cd uploader
