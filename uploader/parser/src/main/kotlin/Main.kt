@@ -13,7 +13,7 @@ Usage:
   validate [--all] [<file>...]
   upload [--deleted <file>...] [--added <file>...] [--updated <file>...] [--config]
   hash --old-commit <hash> --new-commit <hash>
-  reset
+  reset --commit <hash>
  
 
 Options:
