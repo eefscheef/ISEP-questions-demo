@@ -38,4 +38,4 @@ jobs:
         run: |
           cd uploader
           ./gradlew build
-          ./gradlew run --args="validate ${{ env.files }}"
+          ./gradlew run --args="validate `${{ env.files }}`"
