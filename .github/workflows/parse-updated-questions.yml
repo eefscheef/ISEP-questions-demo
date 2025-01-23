@@ -26,8 +26,8 @@ jobs:
         id: changed-files
         run: |
           git fetch origin main
-          # Wrap each file in quotes and store them as a space-separated string
-          echo "files=$(git diff --diff-filter=AM --name-only origin/main questions | awk '{print "\"" $0 "\""}' | tr '\n' ' ')" >> $GITHUB_ENV
+          # Wrap each file in single quotes and store them as a space-separated string
+          echo "files=$(git diff --diff-filter=AM --name-only origin/main questions | awk '{print "\047" $0 "\047"}' | tr '\n' ' ')" >> $GITHUB_ENV
 
       - name: Debug changed files
         run: |
