@@ -135,17 +135,41 @@ class QueryExecutor(private val currentSession: Session) {
     }
 
     fun updateHashes(oldHash: String, newHash: String): Int {
-        val query = currentSession.createMutationQuery(
+        // Update invites referencing the old git commit hash
+        val updateInvite = currentSession.createMutationQuery(
+            """
+        UPDATE Invite i
+        SET i.assessment.id.gitCommitHash = :newHash
+        WHERE i.assessment.id.gitCommitHash = :oldHash
+        """
+        )
+        updateInvite.setParameter("newHash", newHash)
+        updateInvite.setParameter("oldHash", oldHash)
+        updateInvite.executeUpdate()
+
+        // Update sections referencing the old git commit hash
+        val updateSection = currentSession.createMutationQuery(
+            """
+        UPDATE Section s 
+        SET s.assessment.id.gitCommitHash = :newHash 
+        WHERE s.assessment.id.gitCommitHash = :oldHash
+        """
+        )
+        updateSection.setParameter("newHash", newHash)
+        updateSection.setParameter("oldHash", oldHash)
+        updateSection.executeUpdate()
+
+        // Update the assessments after sections and invites are updated
+        val updateAssessment = currentSession.createMutationQuery(
             """
         UPDATE Assessment a 
         SET a.id.gitCommitHash = :newHash 
         WHERE a.id.gitCommitHash = :oldHash
-        AND a.latest = TRUE
         """
         )
-        query.setParameter("newHash", newHash)
-        query.setParameter("oldHash", oldHash)
-        return query.executeUpdate()
+        updateAssessment.setParameter("newHash", newHash)
+        updateAssessment.setParameter("oldHash", oldHash)
+        return updateAssessment.executeUpdate()
     }
 
     fun flush() = currentSession.flush()

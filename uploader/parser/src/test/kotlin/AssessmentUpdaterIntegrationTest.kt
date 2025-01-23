@@ -272,34 +272,4 @@ class AssessmentUpdaterIntegrationTest : BaseIntegrationTest() {
         assertEquals(newHash, updatedAssessments[1].id.gitCommitHash, "Assessment 2 commit hash was not updated")
         assertEquals(newHash, updatedAssessments[2].id.gitCommitHash, "Assessment 3 commit hash was not updated")
     }
-    @Test
-    fun `should only update commit hash for active assessments`() {
-        // Arrange
-        val oldHash = "oldhash1234"
-        val newHash = "newhash1234"
-
-        // Create one active assessment and one inactive (latest = false)
-        val activeAssessment = Assessment(id = AssessmentID(tag = "tag1", gitCommitHash = oldHash), latest = true)
-        val inactiveAssessment = Assessment(id = AssessmentID(tag = "tag2", gitCommitHash = oldHash), latest = false)
-        TestQueryHelper.persistEntity(activeAssessment, session)
-        TestQueryHelper.persistEntity(inactiveAssessment, session)
-
-        // Act: Call updateHash
-        val assessmentUpdater = AssessmentUpdater(sessionFactory, oldHash)
-        assessmentUpdater.updateHash(newHash)
-        session.close()
-        val session = sessionFactory.openSession()
-        // Assert: Ensure that only the active assessment has its hash updated
-        val updatedAssessments = TestQueryHelper.fetchAll<Assessment>(session)
-        assertEquals(2, updatedAssessments.size)
-        val updatedInactiveAssessment = updatedAssessments[0]
-        assertEquals("tag2", updatedInactiveAssessment.id.tag!!)
-        val updatedActiveAssessment = updatedAssessments[1]
-        assertEquals("tag1", updatedActiveAssessment.id.tag!!)
-
-        assertEquals(newHash, updatedActiveAssessment.id.gitCommitHash, "Active assessment's commit hash was not updated")
-        assertEquals(oldHash, updatedInactiveAssessment.id.gitCommitHash, "Inactive assessment's commit hash should not be updated")
-        session.close()
-    }
-
 }
