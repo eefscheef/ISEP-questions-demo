@@ -40,7 +40,6 @@ class AssessmentUpdater(
                 modifyAssignments(parseAssignments(modifiedFilenames))
             }
             upload()
-            updateNewAssignmentFileNames()
         }
         queryExecutor.closeSession()
     }
@@ -215,14 +214,6 @@ class AssessmentUpdater(
                     })
                 }
             }
-        }
-    }
-
-    private fun updateNewAssignmentFileNames() {
-        frontmatterToNewAssignment.forEach { (frontmatter, assignment) ->
-            val existingFile = File(frontmatter.originalFilePath)
-            val newFilename = QuestionIDUtil.injectQuestionID(assignment.baseFilePath!!, assignment.id)
-            existingFile.renameTo(File(newFilename))
         }
     }
 
