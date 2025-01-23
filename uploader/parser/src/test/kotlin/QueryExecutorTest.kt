@@ -10,19 +10,25 @@ class QueryExecutorTest : BaseIntegrationTest() {
     fun `test uploadEntities persists assignments, sections with assessment`() {
         // Arrange
         val assignment1 =
-            Assignment(baseFilePath = "Topic/filename_qid123", assignmentType = AssignmentType.OPEN, availablePoints = 5)
-        val assignment2 = Assignment(
-            baseFilePath = "Database/jpa_qid12",
-            assignmentType = AssignmentType.MULTIPLE_CHOICE,
+           createAssignment(topic = "Topic", filename = "filename.md", type = AssignmentType.OPEN, availablePoints = 5)
+        val assignment2 =createAssignment(
+            topic = "other topic",
+            filename = "Database/jpa.md",
+            type = AssignmentType.MULTIPLE_CHOICE,
             availablePoints = 5
         )
-        val assignment3 = Assignment(
-            baseFilePath = "Management/scrum_qid9",
-            assignmentType = AssignmentType.MULTIPLE_CHOICE,
+        val assignment3 =createAssignment(
+            topic = "other topic",
+            filename = "Management/scrum9.md",
+            type = AssignmentType.MULTIPLE_CHOICE,
             availablePoints = 5
         )
         val assignment4 =
-            Assignment(baseFilePath = "Cooking/frikandel_qid2", assignmentType = AssignmentType.OPEN, availablePoints = 5)
+           createAssignment(
+               topic = "Some fourth topic",
+               filename = "Cooking/frikandel.md",
+               type = AssignmentType.OPEN,
+               availablePoints = 5)
 
         val section1 = Section(title = "section 1").apply {
             addAssignment(assignment1)
@@ -74,8 +80,8 @@ class QueryExecutorTest : BaseIntegrationTest() {
     fun `test uploadEntities persists multiple assignments`() {
         // Arrange
         val assignments = listOf(
-            Assignment(baseFilePath = "testPath1", assignmentType = AssignmentType.OPEN, availablePoints = 5),
-            Assignment(baseFilePath = "testPath2", assignmentType = AssignmentType.MULTIPLE_CHOICE, availablePoints = 10)
+           createAssignment(topic = "Topic", filename = "testFile1.md", type = AssignmentType.OPEN, availablePoints = 5),
+           createAssignment(topic = "Topic", filename = "testFile2.md", type = AssignmentType.MULTIPLE_CHOICE, availablePoints = 10)
         )
 
         // Act
@@ -91,7 +97,7 @@ class QueryExecutorTest : BaseIntegrationTest() {
     @Test
     fun `test clearDatabase deletes assignments, sections, assessments`() {
         // Arrange: Add some sample data to the database
-        val assignment = Assignment(baseFilePath = "testPath", assignmentType = AssignmentType.OPEN, availablePoints = 2)
+        val assignment =createAssignment(topic = "Topic 1", filename = "testFile.md", type = AssignmentType.OPEN, availablePoints = 2)
         val assessment = Assessment(AssessmentID(tag = "test", gitCommitHash = "hash"), latest = true).apply {
             addSection(Section(title = "Sample Section").apply {
                 addAssignment(assignment)
@@ -110,9 +116,9 @@ class QueryExecutorTest : BaseIntegrationTest() {
     @Test
     fun `test findAssessmentsByAssignmentIds`() {
         // Arrange
-        val assignment1 = Assignment(baseFilePath = "path1", assignmentType = AssignmentType.OPEN, availablePoints = 3)
+        val assignment1 =createAssignment(topic = "topic 1", filename = "file1.md", type = AssignmentType.OPEN, availablePoints = 3)
         val assignment2 =
-            Assignment(baseFilePath = "path2", assignmentType = AssignmentType.MULTIPLE_CHOICE, availablePoints = 7)
+           createAssignment(topic = "topic 2", filename = "file2.md", type = AssignmentType.MULTIPLE_CHOICE, availablePoints = 7)
         val section = Section(title = "Test Section")
         val assessment = Assessment(
             id = AssessmentID(tag = "test tag", gitCommitHash = "test commit hash"),
@@ -179,9 +185,8 @@ class QueryExecutorTest : BaseIntegrationTest() {
     @Test
     fun `test findAssignmentsByIds`() {
         // Arrange
-        val assignment1 = Assignment(baseFilePath = "test1", assignmentType = AssignmentType.OPEN, availablePoints = 5)
-        val assignment2 =
-            Assignment(baseFilePath = "test2", assignmentType = AssignmentType.MULTIPLE_CHOICE, availablePoints = 10)
+        val assignment1 = createAssignment(topic = "test topic", filename = "test1.md", type = AssignmentType.OPEN, availablePoints = 5)
+        val assignment2 = createAssignment(topic = "different topic", filename = "test2.md", type = AssignmentType.MULTIPLE_CHOICE, availablePoints = 10)
         TestQueryHelper.persistEntity(assignment1, session)
         TestQueryHelper.persistEntity(assignment2, session)
 
@@ -190,8 +195,8 @@ class QueryExecutorTest : BaseIntegrationTest() {
 
         // Assert
         assertEquals(2, result.size, "Expected 2 assignments in the result")
-        assertTrue(result.any { it.baseFilePath == "test1" }, "Expected assignment1 in the result")
-        assertTrue(result.any { it.baseFilePath == "test2" }, "Expected assignment2 in the result")
+        assertTrue(result.any { it.baseFilePath!!.endsWith("test1.md") }, "Expected assignment1 in the result")
+        assertTrue(result.any { it.baseFilePath!!.endsWith("test2.md") }, "Expected assignment2 in the result")
     }
 
     @Test

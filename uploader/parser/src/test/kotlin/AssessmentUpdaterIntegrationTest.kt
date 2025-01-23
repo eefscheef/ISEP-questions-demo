@@ -5,27 +5,11 @@ import QueryExecutor
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.io.TempDir
 import parser.Config
 import ut.isep.management.model.entity.*
-import java.io.File
-import java.nio.file.Path
 import kotlin.io.path.pathString
 
 class AssessmentUpdaterIntegrationTest : BaseIntegrationTest() {
-
-
-    @TempDir
-    lateinit var tempDir: Path
-
-    private fun createTestFile(topic: String, filename: String, content: String): File {
-        val tempFile = tempDir.resolve("$topic/$filename").toFile()
-        tempFile.parentFile.mkdirs()
-        tempFile.createNewFile()
-        tempFile.writeText(content)
-        return tempFile
-    }
-
     @BeforeEach
     override fun openSession() {
         super.openSession()

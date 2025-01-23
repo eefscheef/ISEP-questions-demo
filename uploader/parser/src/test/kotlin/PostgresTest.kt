@@ -11,7 +11,7 @@ class PostgresTest : BaseIntegrationTest() {
     @Test
     fun `test inserting and retrieving an assignment`() {
         // Arrange
-        val assignment = Assignment(baseFilePath = "testPath", assignmentType = AssignmentType.OPEN, availablePoints = 2)
+        val assignment = createAssignment(topic = "some topic", filename = "testPath.md", type = AssignmentType.OPEN, availablePoints = 2)
         // Act
         TestQueryHelper.persistEntity(assignment, session)
         // Assert
