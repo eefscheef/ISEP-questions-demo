@@ -1,9 +1,6 @@
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
-import parser.Config
-import parser.FrontmatterParser
-import parser.QuestionParser
-import parser.TagValidator
+import parser.*
 import java.io.File
 import kotlin.system.exitProcess
 
@@ -84,7 +81,7 @@ private fun uploadAll(commitHash: String) {
     val queryExecutor = QueryExecutor(session)
     queryExecutor.withTransaction {
         clearDatabase()
-        mergeEntities(assessmentProcessor.parseAll(commitHash))
+        persistEntities(assessmentProcessor.parseAll(commitHash))
     }
     queryExecutor.closeSession()
 }
