@@ -1,3 +1,6 @@
+name: Validate the questions in updated, added files
+
+
 on:
   pull_request:
     branches:
@@ -26,8 +29,8 @@ jobs:
         id: changed-files
         run: |
           git fetch origin main
-          # Filter for
-          echo "files=$(git diff --diff-filter=AM --name-only origin/main questions | tr '\n' ' ')" >> $GITHUB_ENV
+          # Wrap each file in single quotes and store them as a space-separated string
+          echo "files=$(git diff --diff-filter=AM --name-only origin/main questions | awk '{print "\047" $0 "\047"}' | tr '\n' ' ')" >> $GITHUB_ENV
 
       - name: Debug changed files
         run: |
