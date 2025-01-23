@@ -17,9 +17,7 @@ class AssessmentParser(private val questionDir: File, private val parser: Questi
     /**
      * @throws QuestionParsingException
      */
-    private fun parseQuestionFilesInDir(
-        questionDir: File
-    ): Map<String, Section> {
+    private fun parseQuestionFilesInDir(questionDir: File): Map<String, Section> {
         val topic = questionDir.name
         val mdFiles = questionDir.listFiles { file -> file.extension == "md" } ?: emptyArray()
         val questions: MutableList<Question> = mdFiles.map { mdFile ->
