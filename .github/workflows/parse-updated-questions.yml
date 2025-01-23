@@ -33,12 +33,9 @@ jobs:
         run: |
           echo "Changed files: ${{ env.files }}"
 
-      - name: Setup tmate session
-        uses: mxschmitt/action-tmate@v3
-
       - name: Build and Run Parser
         if: ${{ env.files != '' }}  # This can happen when only files were deleted, or question files weren't touched
         run: |
           cd uploader
           ./gradlew build
-          ./gradlew run --args="validate `${{ env.files }}`"
+          ./gradlew run --args="validate ${{ env.files }}"
