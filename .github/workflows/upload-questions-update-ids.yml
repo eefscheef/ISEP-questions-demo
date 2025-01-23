@@ -32,9 +32,9 @@ jobs:
         id: changed-files
         run: |
           git diff --name-status HEAD^ HEAD > changed_files.txt
-          added_files=$(awk '$1 == "A" && $2 ~ /^questions\/.*\.md$/ {print $2}' changed_files.txt | tr '\n' ' ')
-          updated_files=$(awk '$1 == "M" && $2 ~ /^questions\/.*\.md$/ {print $2}' changed_files.txt | tr '\n' ' ')
-          deleted_files=$(awk '$1 == "D" && $2 ~ /^questions\/.*\.md$/ {print $2}' changed_files.txt | tr '\n' ' ')
+          added_files=$(awk '$1 == "A" && $2 ~ /^questions\/.*\.md$/ {print "\047" $2 "\047"}' changed_files.txt | tr '\n' ' ')
+          updated_files=$(awk '$1 == "M" && $2 ~ /^questions\/.*\.md$/ {print "\047" $2 "\047"}' changed_files.txt | tr '\n' ' ')
+          deleted_files=$(awk '$1 == "D" && $2 ~ /^questions\/.*\.md$/ {print "\047" $2 "\047"}' changed_files.txt | tr '\n' ' ')
           echo "added_files=${added_files}" >> $GITHUB_ENV
           echo "updated_files=${updated_files}" >> $GITHUB_ENV
           echo "deleted_files=${deleted_files}" >> $GITHUB_ENV
