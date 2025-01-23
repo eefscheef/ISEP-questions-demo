@@ -1,4 +1,4 @@
-name: Update IDs for Changed Files
+name: Update database with deleted, modified added files. Update filenames to store IDs for new question files
 
 on:
   push:
