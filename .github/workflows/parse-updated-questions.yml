@@ -2,6 +2,13 @@ on:
   pull_request:
     branches:
       - main
+  workflow_dispatch:
+    inputs:
+      debug_enabled:
+        type: boolean
+        description: 'Run the build with tmate debugging enabled (https://github.com/marketplace/actions/debugging-with-tmate)'
+        required: false
+        default: false
 
 jobs:
   validate:
@@ -32,6 +39,10 @@ jobs:
       - name: Debug changed files
         run: |
           echo "Changed files: ${{ env.files }}"
+
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
 
       - name: Build and Run Parser
         if: ${{ env.files != '' }}  # This can happen when only files were deleted, or question files weren't touched
