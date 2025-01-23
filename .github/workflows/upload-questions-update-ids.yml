@@ -31,18 +31,47 @@ jobs:
       - name: Identify Changed Files
         id: changed-files
         run: |
-          git diff --name-status HEAD^ HEAD > changed_files.txt
-          added_files=$(awk '$1 == "A" && $2 ~ /^questions\/.*\.md$/ {print "\047" $2 "\047"}' changed_files.txt | tr '\n' ' ')
-          updated_files=$(awk '$1 == "M" && $2 ~ /^questions\/.*\.md$/ {print "\047" $2 "\047"}' changed_files.txt | tr '\n' ' ')
-          deleted_files=$(awk '$1 == "D" && $2 ~ /^questions\/.*\.md$/ {print "\047" $2 "\047"}' changed_files.txt | tr '\n' ' ')
-          echo "added_files=${added_files}" >> $GITHUB_ENV
-          echo "updated_files=${updated_files}" >> $GITHUB_ENV
-          echo "deleted_files=${deleted_files}" >> $GITHUB_ENV
-          if grep -q '^M.*config.yaml' changed_files.txt; then
-            echo "config_flag=--config" >> $GITHUB_ENV
-          else
-            echo "config_flag=" >> $GITHUB_ENV
-          fi
+          # Run the script to parse the git diff output
+          git_diff_output=$(git diff --name-status HEAD^ HEAD)
+          
+          # Initialize empty lists for added, updated, and deleted files
+          added_files=()
+          updated_files=()
+          deleted_files=()
+          config_flag=""
+          
+          # Process each line of the git diff output
+          while IFS=$'\t' read -r status filename; do
+            if [[ "$filename" == "config.yaml" ]]; then
+              config_flag="--config"
+            fi
+          
+            if [[ "$filename" == questions/* ]]; then
+              case "$status" in
+                A)
+                  added_files+=("'$filename'")
+                  ;;
+                M)
+                  updated_files+=("'$filename'")
+                  ;;
+                D)
+                  deleted_files+=("'$filename'")
+                  ;;
+              esac
+            fi
+          done <<< "$git_diff_output"
+          
+          # Join the arrays into space-separated strings
+          added_files=$(IFS=' '; echo "${added_files[*]}")
+          updated_files=$(IFS=' '; echo "${updated_files[*]}")
+          deleted_files=$(IFS=' '; echo "${deleted_files[*]}")
+          
+          # Set the output variables for the GitHub Action
+          echo "added_files=$added_files" >> $GITHUB_ENV
+          echo "updated_files=$updated_files" >> $GITHUB_ENV
+          echo "deleted_files=$deleted_files" >> $GITHUB_ENV
+          echo "config_flag=$config_flag" >> $GITHUB_ENV
+        shell: bash
 
       - name: Build and Run Parser
         run: |
