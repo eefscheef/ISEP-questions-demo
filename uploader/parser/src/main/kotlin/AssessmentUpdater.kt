@@ -121,7 +121,7 @@ class AssessmentUpdater(
         }
         if (sectionsToUpdate.isEmpty()) {
             val newSection = Section(title = assignment.sectionTitle).apply { this.addAssignment(assignment) }
-            assessment.addSection(newSection)
+            updatedAssessment.addSection(newSection)
         } else if (sectionsToUpdate.size > 1) {
             throw IllegalStateException("Assessments should not have multiple sections with the same title")
         } else {
