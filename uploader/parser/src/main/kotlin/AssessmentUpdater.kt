@@ -8,7 +8,6 @@ import java.io.File
 
 class AssessmentUpdater(
     private val sessionFactory: SessionFactory,
-    private val commitHash: String
 ) {
     private val parser = FrontmatterParser()
     private val queryExecutor: QueryExecutor by lazy { QueryExecutor(sessionFactory.openSession()) }
@@ -45,13 +44,6 @@ class AssessmentUpdater(
         queryExecutor.closeSession()
     }
 
-    fun updateHash(newHash: String) {
-        queryExecutor.withTransaction {
-            updateHashes(commitHash, newHash)
-        }
-        queryExecutor.closeSession()
-    }
-
     private fun updateConfig(config: Config) {
         val currentActiveAssessmentsByTag: Map<String, Assessment> =
             queryExecutor.getLatestAssessments().associateBy { it.tag!! }
@@ -61,7 +53,7 @@ class AssessmentUpdater(
         val newAssessments = newTags.associateWith { tag ->
             Assessment(
                 tag = tag,
-                gitCommitHash =  commitHash,
+                gitCommitHash = null,
                 latest = true
             )
         }
@@ -233,7 +225,7 @@ class AssessmentUpdater(
         deactivedAssessments.add(this)
         val newAssessment = Assessment(
             tag = this.tag,
-            gitCommitHash = commitHash,
+            gitCommitHash = null,
             sections = mutableListOf(), // Temporarily empty; will be populated below
             latest = true
         )

@@ -9,8 +9,8 @@ const val USAGE = """
 Usage:
   validate [--all] [<file>...]
   upload [--deleted <file>...] [--added <file>...] [--updated <file>...] [--config]
-  hash --old-commit <hash> --new-commit <hash>
-  reset --commit <hash>
+  hash --commit <hash>
+  reset
  
 
 Options:
@@ -49,11 +49,16 @@ private fun validateAll() {
     println("All questions validated")
 }
 
-fun handleValidateCommand(processEntireRepo: Boolean, files: List<String>) {
+fun handleValidateCommand(args: List<String>) {
+    val processEntireRepo = args[0] == "--all" || args[1] == "-a"
+    if (processEntireRepo && args.size > 1) { // Can't provide filenames with --all flag set
+        printUsageAndExit()
+    }
     if (processEntireRepo) {
         validateAll()
         return
     }
+    val files = args.drop(1)
     files.forEach { filename ->
         try {
             if (File(filename).extension == "md") {
@@ -70,29 +75,9 @@ fun handleValidateCommand(processEntireRepo: Boolean, files: List<String>) {
     }
 }
 
-private fun uploadAll(commitHash: String) {
-
-
-    val assessmentProcessor = AssessmentParser(File("questions"), QuestionParser())
-    val databaseConfig = DatabaseConfiguration(AzureDatabaseConfigProvider())
-    val dataSource = databaseConfig.createDataSource()
-    val sessionFactory = databaseConfig.createSessionFactory(dataSource)
-    val session = sessionFactory.openSession()
-    val queryExecutor = QueryExecutor(session)
-    queryExecutor.withTransaction {
-        clearDatabase()
-        persistEntities(assessmentProcessor.parseAll(commitHash))
-    }
-    queryExecutor.closeSession()
-}
-
 
 fun main(args: Array<String>) {
-    if (args.size < 2) {
-        printUsageAndExit()
-    }
-    val processEntireRepo = args[1] == "--all" || args[1] == "-a"
-    if (processEntireRepo && args.size != 2) { // Can't provide filenames with --all flag set
+    if (args.isEmpty()) {
         printUsageAndExit()
     }
 
@@ -101,37 +86,42 @@ fun main(args: Array<String>) {
 
     when (command) {
         "help", "--help", "-h" -> printUsageAndExit()
-        "validate" -> handleValidateCommand(processEntireRepo, arguments)
+        "validate" -> handleValidateCommand(arguments)
         "upload" -> handleUploadCommand(arguments)
         "hash" -> handleHashCommand(arguments)
-        "reset" -> handleResetCommand(arguments)
+        "reset" -> handleResetCommand()
         else -> printUsageAndExit()
     }
     exitProcess(0)
 }
 
 fun handleHashCommand(arguments: List<String>) {
-    if (arguments.size != 4 || arguments[0] != "--old-commit" || arguments[2] != "--new-commit") {
+    if (arguments.size != 2 || arguments[0] != "--commit") {
         printUsageAndExit()
     }
     val databaseConfig = DatabaseConfiguration(AzureDatabaseConfigProvider())
     val dataSource = databaseConfig.createDataSource()
-    val sessionFactory = databaseConfig.createSessionFactory(dataSource)
-    val assessmentUpdater = AssessmentUpdater(sessionFactory, arguments[1])
-    assessmentUpdater.updateHash(arguments[3])
-}
-
-
-fun handleResetCommand(arguments: List<String>) {
-    val commitHash = parseResetCommitHash(arguments)
-    uploadAll(commitHash) // Must provide commit hash
-}
-
-fun parseResetCommitHash(arguments: List<String>): String {
-    if (arguments.size == 2 && arguments[0] == "--commit") {
-        return arguments[1]
+    databaseConfig.createSessionFactory(dataSource).use { sessionFactory ->
+        sessionFactory.openSession().use { session ->
+            val queryExecutor = QueryExecutor(session)
+            queryExecutor.updateHashes(arguments[1])
+        }
     }
-    printUsageAndExit()
+}
+
+
+fun handleResetCommand() {
+    val assessmentProcessor = AssessmentParser(File("questions"), QuestionParser())
+    val databaseConfig = DatabaseConfiguration(AzureDatabaseConfigProvider())
+    val dataSource = databaseConfig.createDataSource()
+    val sessionFactory = databaseConfig.createSessionFactory(dataSource)
+    val session = sessionFactory.openSession()
+    val queryExecutor = QueryExecutor(session)
+    queryExecutor.withTransaction {
+        clearDatabase()
+        persistEntities(assessmentProcessor.parseAll())
+    }
+    queryExecutor.closeSession()
 }
 
 fun handleUploadCommand(arguments: List<String>) {
@@ -144,7 +134,6 @@ fun parseUploadArguments(arguments: List<String>): Arguments {
     val deletedFiles = mutableListOf<String>()
     val addedFiles = mutableListOf<String>()
     val updatedFiles = mutableListOf<String>()
-    var commitHash: String? = null
     var configFlag = false
     var currentList: MutableList<String>? = null
     var i = 0
@@ -154,14 +143,6 @@ fun parseUploadArguments(arguments: List<String>): Arguments {
             "--deleted" -> currentList = deletedFiles
             "--added" -> currentList = addedFiles
             "--updated" -> currentList = updatedFiles
-            "--commit" -> {
-                if (i + 1 < arguments.size) {
-                    commitHash = arguments[i + 1]
-                    i++ // Skip the next argument since it's the hash
-                } else {
-                    printUsageAndExit() // Handle missing hash
-                }
-            }
 
             "--config" -> configFlag = true
             else -> {
@@ -179,7 +160,6 @@ fun parseUploadArguments(arguments: List<String>): Arguments {
         deletedFiles = deletedFiles,
         addedFiles = addedFiles,
         updatedFiles = updatedFiles,
-        commitHash = commitHash,
         isConfigChanged = configFlag
     )
 }
@@ -189,7 +169,6 @@ data class Arguments(
     val deletedFiles: List<String>,
     val addedFiles: List<String>,
     val updatedFiles: List<String>,
-    val commitHash: String?,
     val isConfigChanged: Boolean = false
 )
 
@@ -202,7 +181,7 @@ fun validateUploadArguments(arguments: Arguments) {
 
 
 fun upload(arguments: Arguments) {
-    val (deletedFiles, addedFiles, updatedFiles, commitHash, isConfigChanged) = arguments
+    val (deletedFiles, addedFiles, updatedFiles, isConfigChanged) = arguments
     val changedConfig = if (isConfigChanged) config else null
     validateUploadArguments(arguments)
     if (addedFiles.isNotEmpty()) {
@@ -219,7 +198,7 @@ fun upload(arguments: Arguments) {
     val sessionFactory = databaseConfig.createSessionFactory(dataSource)
 
 
-    val updater = AssessmentUpdater(sessionFactory, commitHash ?: printUsageAndExit())
+    val updater = AssessmentUpdater(sessionFactory)
     println("Uploading changes:")
 
 

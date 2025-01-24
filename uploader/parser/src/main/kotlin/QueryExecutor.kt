@@ -134,17 +134,15 @@ class QueryExecutor(private val currentSession: Session) {
         return currentSession.createQuery(query).resultList
     }
 
-    fun updateHashes(oldHash: String, newHash: String): Int {
-        // Update the assessments first
+    fun updateHashes(newHash: String): Int {
         val updateAssessment = currentSession.createMutationQuery(
             """
         UPDATE Assessment a 
         SET a.gitCommitHash = :newHash 
-        WHERE a.gitCommitHash = :oldHash
+        WHERE a.gitCommitHash IS NULL AND a.latest = true
         """
         )
         updateAssessment.setParameter("newHash", newHash)
-        updateAssessment.setParameter("oldHash", oldHash)
         return updateAssessment.executeUpdate()
     }
 
