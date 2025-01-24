@@ -1,13 +1,6 @@
 tag-options:
-  - "Senior dev Java"
-  - "Junior dev .NET"
-  - "Rust zealot"
   - "Backend Developer"
   - "System Design"
-  - "Database"
-  - "Frontend Developer"
-  - "New tag"
-  - "Newer tag"
 
 question-options:
   - "MultipleChoice"
