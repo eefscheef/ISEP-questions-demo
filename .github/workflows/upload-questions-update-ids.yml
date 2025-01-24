@@ -24,10 +24,6 @@ jobs:
           distribution: 'temurin'
           cache: 'gradle'
 
-      - name: Get Old Commit Hash
-        id: get-old-commit-hash
-        run: echo "old_hash=$(git rev-parse HEAD)" >> $GITHUB_ENV
-
       - name: Identify Changed Files
         id: changed-files
         run: |
@@ -79,10 +75,10 @@ jobs:
 
           # Echo the arguments to display them
           echo "Running Gradle with the following arguments:"
-          echo "upload ${config_flag} --added ${added_files} --updated ${updated_files} --deleted ${deleted_files} --commit ${old_hash}"
+          echo "upload ${config_flag} --added ${added_files} --updated ${updated_files} --deleted ${deleted_files}"
 
           ./gradlew build
-          ./gradlew run --args="upload ${config_flag} --added ${added_files} --updated ${updated_files} --deleted ${deleted_files} --commit ${old_hash}"
+          ./gradlew run --args="upload ${config_flag} --added ${added_files} --updated ${updated_files} --deleted ${deleted_files}"
           cd ..
         env:
           JDBC_URL: ${{ secrets.JDBC_URL }}
@@ -118,7 +114,7 @@ jobs:
         run: |
           cd uploader
           ./gradlew build
-          ./gradlew run --args="hash --old-commit $old_hash --new-commit $new_hash"
+          ./gradlew run --args="hash --commit $new_hash"
         env:
           JDBC_URL: ${{ secrets.JDBC_URL }}
           DB_USERNAME: ${{ secrets.DB_USERNAME }}
