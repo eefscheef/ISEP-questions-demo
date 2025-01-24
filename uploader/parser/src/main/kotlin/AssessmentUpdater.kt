@@ -147,7 +147,7 @@ class AssessmentUpdater(
                 )
             lateinit var updatedAssignment: Assignment
 
-            if (!frontmatter.equalPersistentAttrs(existingAssignment)) {
+            if (frontmatter.type != existingAssignment.assignmentType) {
                 updatedAssignment = createNewAssignment(frontmatter)
                 handleModifiedAssignment(frontmatter.id!!, updatedAssignment)
             } else {
@@ -239,9 +239,6 @@ class AssessmentUpdater(
         return newAssessment
     }
 
-    private fun Frontmatter.equalPersistentAttrs(assignment: Assignment): Boolean {
-        return this.id == assignment.id && this.originalFilePath == assignment.baseFilePath && type == assignment.assignmentType
-    }
 
     private fun parseAssignments(filenames: List<String>): List<Frontmatter> {
         return filenames.map { filename ->
