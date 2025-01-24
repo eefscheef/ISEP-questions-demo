@@ -1,15 +1,20 @@
 import parser.QuestionParser
 import parser.question.Question
 import ut.isep.management.model.entity.Assessment
+import ut.isep.management.model.entity.Assignment
 import ut.isep.management.model.entity.Section
 import java.io.File
 
 class AssessmentParser(private val questionDir: File, private val parser: QuestionParser) {
 
+    // Save Assignment objects here so all Assessment's assignment point to the same object if they share an assignment
+    // This prevents us from persisting 2 different Assignments when persisting shared Assignments through cascading
+    // Assessment persists
+    private val pathToAssignment = mutableMapOf<String, Assignment>()
+
     private fun getQuestionDirectories(): Array<File> {
         return questionDir.listFiles { file ->
-            file.isDirectory &&
-                    !file.name.startsWith(".")
+            file.isDirectory && !file.name.startsWith(".")
         } ?: emptyArray()
     }
 
@@ -19,6 +24,7 @@ class AssessmentParser(private val questionDir: File, private val parser: Questi
     private fun parseQuestionFilesInDir(questionDir: File): Map<String, Section> {
         val topic = questionDir.name
         val mdFiles = questionDir.listFiles { file -> file.extension == "md" } ?: emptyArray()
+
         val questions: MutableList<Question> = mdFiles.map { mdFile ->
             parser.parseFile(mdFile)
         }.toMutableList()
@@ -49,9 +55,19 @@ class AssessmentParser(private val questionDir: File, private val parser: Questi
         return Section(
             title = topic,
             assignments = this.map { question ->
-                question.toEntity()
+                getOrCreateAssignment(question)
             }.toMutableList()
         )
+    }
+
+    /**
+     * Reuses Assignment objects for identical Question paths.
+     */
+    private fun getOrCreateAssignment(question: Question): Assignment {
+        val key = question.filePath
+        return pathToAssignment.computeIfAbsent(key) {
+            question.toEntity()
+        }
     }
 
     /**
