@@ -94,8 +94,14 @@ class AssessmentUpdater(
         val updatedAssessment = tagToNewAssessment.getOrPut(tag) {
             assessment.copyWithoutCloningAssignments()
         }
+        var removed = false
         updatedAssessment.sections.forEach { section ->
-            section.removeAssignmentById(deletedAssignmentId)
+            if (section.removeAssignmentById(deletedAssignmentId)) {
+                removed = true
+            }
+        }
+        if (!removed) {
+            throw IllegalArgumentException("Couldn't remove assignmet with ID $deletedAssignmentId from assessment ${assessment.id}")
         }
     }
 
