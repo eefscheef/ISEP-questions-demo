@@ -103,8 +103,10 @@ fun handleHashCommand(arguments: List<String>) {
     val dataSource = databaseConfig.createDataSource()
     databaseConfig.createSessionFactory(dataSource).use { sessionFactory ->
         sessionFactory.openSession().use { session ->
-            val queryExecutor = QueryExecutor(session)
-            queryExecutor.updateHashes(arguments[1])
+            val count = QueryExecutor(session).withTransaction {
+                updateHashes(arguments[1])
+            }
+            println("Updated $count assessments with hash ${arguments[1]}")
         }
     }
 }
