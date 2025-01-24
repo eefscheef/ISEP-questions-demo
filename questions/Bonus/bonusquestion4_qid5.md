@@ -1,7 +1,7 @@
 ---
 type: multiple-choice
 tags:
-  - Backend Developer
+  - System Design
 ---
 What is the correct option?
 
