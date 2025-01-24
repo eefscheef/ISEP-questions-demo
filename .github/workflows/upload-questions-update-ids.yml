@@ -104,13 +104,11 @@ jobs:
           git commit -m "Update IDs of changed/added question files"
           git push
 
-      - name: Get New Commit Hash
-        id: get-new-commit-hash
-        if: env.changed == 'true'
+      - name: Get Latest Commit Hash
+        id: get-latest-commit-hash
         run: echo "new_hash=$(git rev-parse HEAD)" >> $GITHUB_ENV
 
       - name: Update assessments with newest hash
-        if: env.changed == 'true'
         run: |
           cd uploader
           ./gradlew build
