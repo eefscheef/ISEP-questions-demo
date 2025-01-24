@@ -30,14 +30,15 @@ class AssessmentUpdaterIntegrationTest : BaseIntegrationTest() {
             Some content here.
         """.trimIndent()
         val testFile = createTestFile(topic, filename, content)
-        val assessment = Assessment(AssessmentID(tag = "tag1", gitCommitHash = "coolhash"), latest = true)
+        val assessment = Assessment(tag = "tag1", gitCommitHash = "coolhash", latest = true)
         TestQueryHelper.persistEntity(assessment, session)
-
+        session.close()
         // Act
         val assessmentUpdater =
             AssessmentUpdater(sessionFactory, "commitHash")
         assessmentUpdater.updateAssessments(addedFilenames = (listOf(testFile.path)))
         // Assert an assignment was uploaded
+        session = sessionFactory.openSession()
         val retrievedAssignment = TestQueryHelper.fetchSingle<Assignment>(session) ?: fail("Expected one assignment")
         // Assert the basePath was uploaded correctly
         assertEquals(retrievedAssignment.baseFilePath, tempDir.pathString + "/" + topic + "/" + filename)
@@ -62,9 +63,10 @@ class AssessmentUpdaterIntegrationTest : BaseIntegrationTest() {
     fun `should handle deleted question files correctly`() {
         // Given
         val assignment =
-            Assignment(baseFilePath = "file2_qid1234.md", assignmentType = AssignmentType.OPEN, availablePoints = 2)
+            Assignment(baseFilePath = "file2.md", assignmentType = AssignmentType.OPEN, availablePoints = 2)
         val assessment = Assessment(
-            id = AssessmentID(tag = "tag2", gitCommitHash = "commit"),
+            tag = "tag2",
+            gitCommitHash = "commit",
             latest = true
         ).apply {
             addSection(Section(title = "section1").apply {
@@ -74,7 +76,6 @@ class AssessmentUpdaterIntegrationTest : BaseIntegrationTest() {
         TestQueryHelper.persistEntity(assessment, session)
 
         // When
-        println("assignment id :${assignment.id}")
         val assessmentUpdater = AssessmentUpdater(sessionFactory, "commitHash")
 
         assessmentUpdater.updateAssessments(deletedFilenames = listOf("file2_qid${assignment.id}.md"))
@@ -90,7 +91,7 @@ class AssessmentUpdaterIntegrationTest : BaseIntegrationTest() {
         var existingAssignment =
             Assignment(baseFilePath = "file3.md", assignmentType = AssignmentType.MULTIPLE_CHOICE, availablePoints = 2)
         existingAssignment = TestQueryHelper.persistEntity(existingAssignment, session)
-        val existingAssessment = Assessment(AssessmentID("tag3", "previousHash"), latest = true).apply {
+        val existingAssessment = Assessment(tag = "tag3", gitCommitHash =  "previousHash", latest = true).apply {
             addSection(Section(title = "TestTopic").apply {
                 addAssignment(existingAssignment)
             })
@@ -127,38 +128,40 @@ class AssessmentUpdaterIntegrationTest : BaseIntegrationTest() {
     fun `should handle modified config correctly`() {
         // Arrange one non-active assignment in the database, and an active tag in the config
         val existingInactiveAssessment = Assessment(
-            id = AssessmentID("inactiveTag", "previousCommitHash"),
-            latest = false
+            tag = "inactiveTag",
+            gitCommitHash = "previousCommitHash",
+            latest = null
         )
         val existingActiveAssessment = Assessment(
-            id = AssessmentID("activeTag", "previousCommitHash"),
+            tag = "activeTag",
+            gitCommitHash = "previousCommitHash",
             latest = true
         )
         TestQueryHelper.persistEntity(existingInactiveAssessment, session)
         TestQueryHelper.persistEntity(existingActiveAssessment, session)
+        session.close()
         val config = Config(tagOptions = listOf("newAssessment"), questionOptions = listOf("open", "multipleChoice"))
         val assessmentUpdater = AssessmentUpdater(sessionFactory, "newCommitHash")
 
         // Act: Assessmentupdater updates the database to upload an assessment with the active tag
         assessmentUpdater.updateAssessments(config = config)
-        session.close()
-        val session = sessionFactory.openSession()
+        session = sessionFactory.openSession()
         // Assert: we find one active and one inactive assessment, sharing a tag (but not commit hashes)
         val assessments = TestQueryHelper.fetchAll<Assessment>(session)
         assertEquals(3, assessments.size)
         val retrievedOldInactiveAssessment = assessments[0]
-        val retrievedOldActiveAssessment = assessments[2]
-        val retrievedNewActiveAssessment = assessments[1]
+        val retrievedOldActiveAssessment = assessments[1]
+        val retrievedNewActiveAssessment = assessments[2]
 
         assertEquals(existingInactiveAssessment.id, retrievedOldInactiveAssessment.id)
-        assertFalse(retrievedOldInactiveAssessment.latest)
+        assertFalse(retrievedOldInactiveAssessment.isLatest)
 
         assertEquals(existingActiveAssessment.id, retrievedOldActiveAssessment.id)
-        assertFalse(retrievedOldActiveAssessment.latest)
+        assertFalse(retrievedOldActiveAssessment.isLatest)
 
-        assertEquals("newAssessment", retrievedNewActiveAssessment.id.tag!!)
-        assertNotEquals(retrievedNewActiveAssessment.id.gitCommitHash!!, retrievedOldInactiveAssessment.id.gitCommitHash!!)
-        assertTrue(retrievedNewActiveAssessment.latest)
+        assertEquals("newAssessment", retrievedNewActiveAssessment.tag!!)
+        assertNotEquals(retrievedNewActiveAssessment.gitCommitHash!!, retrievedOldInactiveAssessment.gitCommitHash!!)
+        assertTrue(retrievedNewActiveAssessment.isLatest)
         session.close()
     }
 
@@ -171,7 +174,7 @@ class AssessmentUpdaterIntegrationTest : BaseIntegrationTest() {
             TestQueryHelper.persistEntity(this, session)
         }
         val assessment = Assessment(
-            id = AssessmentID(tag = "tag4", gitCommitHash = "testCommit"),
+            tag = "tag4", gitCommitHash = "testCommit",
             latest = true
         ).apply {
             addSection(Section(title = "section1").apply {
@@ -213,8 +216,8 @@ class AssessmentUpdaterIntegrationTest : BaseIntegrationTest() {
         val newHash = "newhash1234"
 
         // Create sample assessments with the old hash
-        val assessment1 = Assessment(id = AssessmentID(tag = "tag1", gitCommitHash = oldHash), latest = true)
-        val assessment2 = Assessment(id = AssessmentID(tag = "tag2", gitCommitHash = oldHash), latest = true)
+        val assessment1 = Assessment(tag = "tag1", gitCommitHash = oldHash, latest = true)
+        val assessment2 = Assessment(tag = "tag2", gitCommitHash = oldHash, latest = true)
         TestQueryHelper.persistEntity(assessment1, session)
         TestQueryHelper.persistEntity(assessment2, session)
         session.close()
@@ -226,8 +229,8 @@ class AssessmentUpdaterIntegrationTest : BaseIntegrationTest() {
         // Assert: Verify that both assessments have their commit hash updated
         val updatedAssessments = TestQueryHelper.fetchAll<Assessment>(session)
         assertEquals(2, updatedAssessments.size)
-        assertEquals(newHash, updatedAssessments[0].id.gitCommitHash, "Assessment 1 commit hash was not updated")
-        assertEquals(newHash, updatedAssessments[1].id.gitCommitHash, "Assessment 2 commit hash was not updated")
+        assertEquals(newHash, updatedAssessments[0].gitCommitHash, "Assessment 1 commit hash was not updated")
+        assertEquals(newHash, updatedAssessments[1].gitCommitHash, "Assessment 2 commit hash was not updated")
         session.close()
     }
 
@@ -242,7 +245,7 @@ class AssessmentUpdaterIntegrationTest : BaseIntegrationTest() {
 
         // Assert: No assessments should be changed
         val assessments = TestQueryHelper.fetchAll<Assessment>(session)
-        val unmodifiedAssessments = assessments.filter { it.id.gitCommitHash == nonExistingHash }
+        val unmodifiedAssessments = assessments.filter { it.gitCommitHash == nonExistingHash }
         assertTrue(unmodifiedAssessments.isEmpty(), "No assessments should have the original commit hash")
     }
 
@@ -253,23 +256,57 @@ class AssessmentUpdaterIntegrationTest : BaseIntegrationTest() {
         val newHash = "newhash1234"
 
         // Create multiple assessments with the same old hash
-        val assessment1 = Assessment(id = AssessmentID(tag = "tag1", gitCommitHash = oldHash), latest = true)
-        val assessment2 = Assessment(id = AssessmentID(tag = "tag2", gitCommitHash = oldHash), latest = true)
-        val assessment3 = Assessment(id = AssessmentID(tag = "tag3", gitCommitHash = oldHash), latest = true)
+        val assessment1 = Assessment(tag = "tag1", gitCommitHash = oldHash, latest = true)
+        val assessment2 = Assessment(tag = "tag2", gitCommitHash = oldHash, latest = true)
+        val assessment3 = Assessment(tag = "tag3", gitCommitHash = oldHash, latest = true)
         TestQueryHelper.persistEntity(assessment1, session)
         TestQueryHelper.persistEntity(assessment2, session)
         TestQueryHelper.persistEntity(assessment3, session)
-
+        session.close()
         // Act: Call updateHash to change the hash
         val assessmentUpdater = AssessmentUpdater(sessionFactory, oldHash)
         assessmentUpdater.updateHash(newHash)
-
+        session = sessionFactory.openSession()
         // Assert: Verify all three assessments have their commit hash updated
         val updatedAssessments = TestQueryHelper.fetchAll<Assessment>(session)
         assertEquals(3, updatedAssessments.size)
 
-        assertEquals(newHash, updatedAssessments[0].id.gitCommitHash, "Assessment 1 commit hash was not updated")
-        assertEquals(newHash, updatedAssessments[1].id.gitCommitHash, "Assessment 2 commit hash was not updated")
-        assertEquals(newHash, updatedAssessments[2].id.gitCommitHash, "Assessment 3 commit hash was not updated")
+        assertEquals(newHash, updatedAssessments[0].gitCommitHash, "Assessment 1 commit hash was not updated")
+        assertEquals(newHash, updatedAssessments[1].gitCommitHash, "Assessment 2 commit hash was not updated")
+        assertEquals(newHash, updatedAssessments[2].gitCommitHash, "Assessment 3 commit hash was not updated")
+    }
+
+    @Test
+    fun `should update commit hash for assessments with sections and invites`() {
+        // Arrange
+        val oldHash = "oldhash1234"
+        val newHash = "newhash1234"
+
+        // Create multiple assessments with the same old hash
+        val assessment1 = Assessment(tag = "tag1", gitCommitHash = oldHash, latest = true).apply {addSection(Section(title="section 1"))}
+        val assessment2 = Assessment(tag = "tag2", gitCommitHash = oldHash, latest = true).apply {addSection(Section(title="section 2"))}
+        TestQueryHelper.persistEntity(assessment1, session)
+        TestQueryHelper.persistEntity(assessment2, session)
+        val app1 = Applicant(name = "Aaron", preferredLanguage = "Kotlin", email = "aaron@example.com")
+        val app2 = Applicant(name = "Zebediah", preferredLanguage = "F", email = "zebediah1@example.com")
+        val app3 = Applicant(name = "Zebediah", preferredLanguage = "C", email = "zebediah2@example.com")
+
+
+        TestQueryHelper.persistEntity(app1, session)
+        TestQueryHelper.persistEntity(app2, session)
+        TestQueryHelper.persistEntity(app3, session)
+        session.close()
+
+
+        // Act: Call updateHash to change the hash
+        val assessmentUpdater = AssessmentUpdater(sessionFactory, oldHash)
+        assessmentUpdater.updateHash(newHash)
+        session = sessionFactory.openSession()
+        // Assert: Verify all three assessments have their commit hash updated
+        val updatedAssessments = TestQueryHelper.fetchAll<Assessment>(session)
+        assertEquals(2, updatedAssessments.size)
+
+        assertEquals(newHash, updatedAssessments[0].gitCommitHash, "Assessment 1 commit hash was not updated")
+        assertEquals(newHash, updatedAssessments[1].gitCommitHash, "Assessment 2 commit hash was not updated")
     }
 }

@@ -14,6 +14,7 @@ class AssessmentUpdater(
     private val queryExecutor: QueryExecutor by lazy { QueryExecutor(sessionFactory.openSession()) }
     private val tagToNewAssessment: MutableMap<String, Assessment> = mutableMapOf()
     private val frontmatterToNewAssignment: MutableMap<Frontmatter, Assignment> = mutableMapOf()
+    private val deactivedAssessments: MutableSet<Assessment> = mutableSetOf()
 
     fun updateAssessments(
         addedFilenames: List<String> = listOf(),
@@ -53,16 +54,14 @@ class AssessmentUpdater(
 
     private fun updateConfig(config: Config) {
         val currentActiveAssessmentsByTag: Map<String, Assessment> =
-            queryExecutor.getLatestAssessments().associateBy { it.id.tag!! }
+            queryExecutor.getLatestAssessments().associateBy { it.tag!! }
         val currentTags: Set<String> = currentActiveAssessmentsByTag.keys
         val newTags: Set<String> = config.tagOptions.subtract(currentTags)
         // create empty assessments for the tags that are in config, but have no active assessments
         val newAssessments = newTags.associateWith { tag ->
             Assessment(
-                id = AssessmentID(
-                    tag,
-                    commitHash
-                ),
+                tag = tag,
+                gitCommitHash =  commitHash,
                 latest = true
             )
         }
@@ -78,6 +77,8 @@ class AssessmentUpdater(
     }
 
     private fun upload(): List<Assessment> {
+        queryExecutor.mergeEntities(deactivedAssessments.toList())
+        queryExecutor.flush() // Flush here so deactivated assessment.latest doesn't violate unique constraint with new assessments.latest
         queryExecutor.persistEntities(frontmatterToNewAssignment.values.toList())
         return queryExecutor.mergeEntities(tagToNewAssessment.values.toList())
     }
@@ -97,7 +98,7 @@ class AssessmentUpdater(
         assessment: Assessment,
         deletedAssignmentId: Long
     ) {
-        val tag = assessment.id.tag!!
+        val tag = assessment.tag!!
         val updatedAssessment = tagToNewAssessment.getOrPut(tag) {
             assessment.copyWithoutCloningAssignments()
         }
@@ -110,12 +111,12 @@ class AssessmentUpdater(
         assessment: Assessment,
         assignment: Assignment,
     ) {
-        val tag = assessment.id.tag!!
+        val tag = assessment.tag!!
         val updatedAssessment = tagToNewAssessment.getOrPut(tag) {
             assessment.copyWithoutCloningAssignments()
         }
-        if (!updatedAssessment.latest) {
-            throw IllegalStateException("Attempted to add assignment ${assignment.id} to assessment ${assessment.id}")
+        if (updatedAssessment.latest == null || updatedAssessment.latest == false) {
+            throw IllegalStateException("Attempted to add assignment ${assignment.id} to non-latest assessment ${assessment.id}")
         }
         val sectionsToUpdate = updatedAssessment.sections.filter { section ->
             section.title == assignment.sectionTitle
@@ -176,7 +177,7 @@ class AssessmentUpdater(
     private fun handleModifiedAssignment(id: Long, newAssignment: Assignment) {
         val affectedAssessments = queryExecutor.findAssessmentsByAssignmentId(id)
         affectedAssessments.forEach { assessment ->
-            val tag = assessment.id.tag!!
+            val tag = assessment.tag!!
             val updatedAssessment = tagToNewAssessment.getOrPut(tag) {
                 assessment.copyWithoutCloningAssignments()
             }
@@ -196,7 +197,7 @@ class AssessmentUpdater(
             )
             val affectedAssessments = frontmatter.tags.map { tag -> getLatestAssessmentByTag(tag) }
             affectedAssessments.forEach { assessment ->
-                val tag = assessment.id.tag!!
+                val tag = assessment.tag!!
                 val updatedAssessment = tagToNewAssessment.getOrPut(tag) {
                     assessment.copyWithoutCloningAssignments()
                 }
@@ -209,7 +210,7 @@ class AssessmentUpdater(
                         oldSection.addAssignment(newAssignment)
                     }
                 } else {
-                    assessment.addSection(Section(title = newAssignment.sectionTitle).apply {
+                    updatedAssessment.addSection(Section(title = newAssignment.sectionTitle).apply {
                         addAssignment(newAssignment)
                     })
                 }
@@ -228,8 +229,11 @@ class AssessmentUpdater(
     }
 
     private fun Assessment.copyWithoutCloningAssignments(): Assessment {
+        this.latest = null // copied assignment is no longer latest
+        deactivedAssessments.add(this)
         val newAssessment = Assessment(
-            id = AssessmentID(this.id.tag, commitHash),
+            tag = this.tag,
+            gitCommitHash = commitHash,
             sections = mutableListOf(), // Temporarily empty; will be populated below
             latest = true
         )
@@ -240,7 +244,6 @@ class AssessmentUpdater(
             ).also { it.assessment = newAssessment } // Point to the new assessment
         }
         newAssessment.sections.addAll(clonedSections)
-        this.latest = false // copied assignment is no longer latest
         return newAssessment
     }
 
