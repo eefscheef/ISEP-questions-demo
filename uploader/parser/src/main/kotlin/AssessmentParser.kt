@@ -1,7 +1,6 @@
 import parser.QuestionParser
 import parser.question.Question
 import ut.isep.management.model.entity.Assessment
-import ut.isep.management.model.entity.AssessmentID
 import ut.isep.management.model.entity.Section
 import java.io.File
 
@@ -69,7 +68,8 @@ class AssessmentParser(private val questionDir: File, private val parser: Questi
         return tagsToSections.map { (tag, sections) ->
             val assessment =
                 Assessment(
-                    AssessmentID(tag = tag, gitCommitHash = commitHash),
+                    tag = tag,
+                    gitCommitHash = commitHash,
                     sections = sections.toMutableList(),
                     latest = true
                 )

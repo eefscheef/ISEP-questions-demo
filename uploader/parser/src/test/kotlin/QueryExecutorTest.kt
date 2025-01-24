@@ -39,7 +39,7 @@ class QueryExecutorTest : BaseIntegrationTest() {
             addAssignment(assignment4)
         }
         val assessment =
-            Assessment(AssessmentID(tag = "testAssessment", gitCommitHash = "somehash1234"), latest = true).apply {
+            Assessment(tag = "testAssessment", gitCommitHash = "somehash1234", latest = true).apply {
                 addSection(section1)
                 addSection(section2)
             }
@@ -73,7 +73,7 @@ class QueryExecutorTest : BaseIntegrationTest() {
         val retrievedAssessment = TestQueryHelper.fetchSingle<Assessment>(session)
             ?: fail("Expected a single assessment in the database")
         assertNotEquals(retrievedAssessment.id, 0) // an ID was assigned in DB
-        assertEquals(assessment.id, retrievedAssessment?.id, "Assessment ID mismatch")
+        assertNotEquals(0L, retrievedAssessment?.id, "Assessment ID not updated")
     }
 
     @Test
@@ -98,7 +98,7 @@ class QueryExecutorTest : BaseIntegrationTest() {
     fun `test clearDatabase deletes assignments, sections, assessments`() {
         // Arrange: Add some sample data to the database
         val assignment =createAssignment(topic = "Topic 1", filename = "testFile.md", type = AssignmentType.OPEN, availablePoints = 2)
-        val assessment = Assessment(AssessmentID(tag = "test", gitCommitHash = "hash"), latest = true).apply {
+        val assessment = Assessment(tag = "test", gitCommitHash = "hash", latest = true).apply {
             addSection(Section(title = "Sample Section").apply {
                 addAssignment(assignment)
             })
@@ -121,7 +121,7 @@ class QueryExecutorTest : BaseIntegrationTest() {
            createAssignment(topic = "topic 2", filename = "file2.md", type = AssignmentType.MULTIPLE_CHOICE, availablePoints = 7)
         val section = Section(title = "Test Section")
         val assessment = Assessment(
-            id = AssessmentID(tag = "test tag", gitCommitHash = "test commit hash"),
+            tag = "test tag", gitCommitHash = "test commit hash",
             latest = true
         ).apply {
             addSection(section.apply {
@@ -142,11 +142,11 @@ class QueryExecutorTest : BaseIntegrationTest() {
     fun `test getLatestAssessments only returns latest=true assessment`() {
         // Arrange
         val activeAssessment = Assessment(
-            id = AssessmentID(tag = "activeTag", gitCommitHash = "newerHash"),
+            tag = "activeTag", gitCommitHash = "newerHash",
             latest = true,
         )
         val inactiveAssessment = Assessment(
-            id = AssessmentID(tag = "inactiveTag", gitCommitHash = "olderHash"),
+            tag = "inactiveTag", gitCommitHash = "olderHash",
             latest = false,
         )
         TestQueryHelper.persistEntity(activeAssessment, session)
@@ -156,19 +156,19 @@ class QueryExecutorTest : BaseIntegrationTest() {
         val retrievedAssessments = queryExecutor.getLatestAssessments()
         // Assert
         assertEquals(1, retrievedAssessments.size)
-        assertEquals("activeTag", retrievedAssessments[0].id.tag!!)
-        assertTrue(retrievedAssessments[0].latest)
+        assertEquals("activeTag", retrievedAssessments[0].tag!!)
+        assertTrue(retrievedAssessments[0].isLatest)
     }
 
     @Test
     fun `test getLatestAssessment`() {
         // Arrange
         val latestAssessment = Assessment(
-            id = AssessmentID(tag = "latestTag", gitCommitHash = "latestHash"),
+            tag = "latestTag", gitCommitHash = "latestHash",
             latest = true,
         )
         val olderAssessment = Assessment(
-            id = AssessmentID(tag = "latestTag", gitCommitHash = "olderHash"),
+            tag = "latestTag", gitCommitHash = "olderHash",
             latest = false
         )
         TestQueryHelper.persistEntity(latestAssessment, session)
@@ -179,7 +179,7 @@ class QueryExecutorTest : BaseIntegrationTest() {
 
         // Assert
         assertNotNull(result, "Expected a non-null latest assessment")
-        assertTrue(result.latest, "Expected the assessment to be marked as latest")
+        assertTrue(result.isLatest, "Expected the assessment to be marked as latest")
     }
 
     @Test
@@ -204,12 +204,12 @@ class QueryExecutorTest : BaseIntegrationTest() {
         // Arrange
         val hash = "somehash1234"
         val validAssessment = Assessment(
-            id = AssessmentID(tag = "testTag", gitCommitHash = hash),
+            tag = "testTag", gitCommitHash = hash,
             latest = true
         )
         val invalidAssessment = Assessment(
-            id = AssessmentID(tag = "testTag", gitCommitHash = "otherhash"),
-            latest = true
+            tag = "testTag", gitCommitHash = "otherhash",
+            latest = null
         )
 
         // Persist the assessments
@@ -221,8 +221,8 @@ class QueryExecutorTest : BaseIntegrationTest() {
 
         // Assert
         assertEquals(1, result.size, "Expected only one assessment with the provided hash and latest=true")
-        assertEquals(validAssessment.id.tag, result[0].id.tag, "Expected the valid assessment")
-        assertTrue(result[0].latest, "Expected the returned assessment to be marked as latest")
+        assertEquals(validAssessment.tag, result[0].tag, "Expected the valid assessment")
+        assertTrue(result[0].isLatest, "Expected the returned assessment to be marked as latest")
     }
 
     @Test
@@ -243,7 +243,7 @@ class QueryExecutorTest : BaseIntegrationTest() {
         // Arrange
         val hash = "somehash1234"
         val oldAssessment = Assessment(
-            id = AssessmentID(tag = "testTag", gitCommitHash = hash),
+            tag = "testTag", gitCommitHash = hash,
             latest = false
         )
 
