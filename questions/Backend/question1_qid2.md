@@ -4,6 +4,8 @@ type: multiple-choice
 tags:
 - Backend Developer
 - System Design
+points: 1 
+seconds: 300
 ---
 
 Why does the monolithic architecture not simply eat the microservice oriented architecture? Is it stupid?

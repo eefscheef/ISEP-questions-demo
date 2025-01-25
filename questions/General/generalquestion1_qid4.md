@@ -2,6 +2,8 @@
 type: multiple-choice
 tags:
   - Backend Developer
+points: 2
+seconds: 30
 ---
 What is the difference between a stack and a queue?
 

@@ -5,6 +5,8 @@ tags:
 language: Java
 type: coding
 code: Main.java
+points: 5
+seconds: 2400
 test: Test.java
 secret-test: SecretTest.java
 ---
