@@ -23,7 +23,9 @@ Commands:
   validate      Validate the specified question files.
   upload        Parse the specified files and upload them to the database. Requires a commit hash using `--commit <hash>`.
   hash          Provide the uploaded assessments with the latest commit hash. 
-  reset         CLEARS THE DATABASE OF ASSESSMENTS. Then parses the entire repository and uploads the found assessments.
+  reset         CLEARS THE DATABASE OF ASSESSMENTS, AND THEIR ASSOCIATED INVITES, SOLUTIONS, AND RESULTS. 
+                Then parses the entire repository and uploads the found assessments.
+ 
 
 Arguments:
   <file>... List of files to process. Cannot be used with --all.
