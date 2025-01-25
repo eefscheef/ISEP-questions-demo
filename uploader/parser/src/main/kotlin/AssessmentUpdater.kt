@@ -1,9 +1,11 @@
-import parser.Config
 import org.hibernate.SessionFactory
+import parser.Config
 import parser.Frontmatter
 import parser.FrontmatterParser
 import parser.QuestionIDUtil
-import ut.isep.management.model.entity.*
+import ut.isep.management.model.entity.Assessment
+import ut.isep.management.model.entity.Assignment
+import ut.isep.management.model.entity.Section
 import java.io.File
 
 class AssessmentUpdater(
@@ -151,16 +153,16 @@ class AssessmentUpdater(
                 ?: throw IllegalStateException(
                     "For modified file with ID ${frontmatter.id} there is no existing assignment in the database"
                 )
-            lateinit var updatedAssignment: Assignment
+            val existingTags = queryExecutor.getTagsOfLatestAssessmentsContainingAssignment(frontmatter.id!!)
 
-            if (frontmatter.type != existingAssignment.assignmentType) {
-                updatedAssignment = createNewAssignment(frontmatter)
-                handleModifiedAssignment(frontmatter.id!!, updatedAssignment)
+            val updatedAssignment = if (existingAssignment.persistedAttributesDifferFrom(frontmatter)) {
+                createNewAssignment(frontmatter).also {
+                    createNewAssessmentsWithModifiedAssignment(frontmatter.id!!, it) // This creates new assessments, so we need to get existingTags before doing this
+                }
             } else {
-                updatedAssignment = existingAssignment
+                existingAssignment
             }
 
-            val existingTags = queryExecutor.getTagsOfLatestAssessmentsContainingAssignment(frontmatter.id!!)
             val addedTags: List<String> = frontmatter.tags - existingTags.toSet()
             addedTags.forEach { tag ->
                 addAssignmentToAssessment(getLatestAssessmentByTag(tag), updatedAssignment)
@@ -172,7 +174,7 @@ class AssessmentUpdater(
         }
     }
 
-    private fun handleModifiedAssignment(id: Long, newAssignment: Assignment) {
+    private fun createNewAssessmentsWithModifiedAssignment(id: Long, newAssignment: Assignment) {
         val affectedAssessments = queryExecutor.findAssessmentsByAssignmentId(id)
         affectedAssessments.forEach { assessment ->
             val tag = assessment.tag!!
@@ -220,10 +222,17 @@ class AssessmentUpdater(
         val newAssignment = Assignment(
             baseFilePath = frontmatter.baseFilePath,
             assignmentType = frontmatter.type,
-            availablePoints = frontmatter.availablePoints
+            availablePoints = frontmatter.availablePoints,
+            availableSeconds = frontmatter.availableSeconds
         )
         frontmatterToNewAssignment[frontmatter] = newAssignment
         return newAssignment
+    }
+
+    private fun Assignment.persistedAttributesDifferFrom(frontmatter: Frontmatter): Boolean {
+        return this.assignmentType != frontmatter.type
+                || this.availablePoints != frontmatter.availablePoints
+                || this.availableSeconds != frontmatter.availableSeconds
     }
 
     private fun Assessment.copyWithoutCloningAssignments(): Assessment {
