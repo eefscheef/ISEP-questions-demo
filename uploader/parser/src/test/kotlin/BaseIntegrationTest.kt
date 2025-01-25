@@ -66,10 +66,10 @@ abstract class BaseIntegrationTest {
         return tempFile
     }
 
-    protected fun createAssignment(topic: String, filename: String, type: AssignmentType, availablePoints: Int): Assignment {
+    protected fun createAssignment(topic: String, filename: String, type: AssignmentType, availablePoints: Int, availableSeconds: Long): Assignment {
         val tempFile = createTestFile(topic, filename)
         val filePath = tempFile.path
-        return Assignment(baseFilePath = filePath, assignmentType = type, availablePoints = availablePoints)
+        return Assignment(baseFilePath = filePath, assignmentType = type, availablePoints = availablePoints, availableSeconds = availableSeconds)
     }
 }
 
