@@ -61,13 +61,13 @@ class AssessmentUpdater(
         }
         val deletedTags: Set<String> = currentTags.subtract(config.tagOptions.toSet())
         // mark assessments whose tags were deleted from the config as inactive
-        val deletedAssessments = deletedTags.associateWith { deletedTag ->
-            currentActiveAssessmentsByTag[deletedTag]?.apply { latest = null }
-                ?: throw IllegalStateException("Could not find assessment with tag $deletedTag to mark as latest=false")
+        val deletedAssessments = deletedTags.map { deletedTag ->
+            currentActiveAssessmentsByTag[deletedTag]
+                ?: throw IllegalStateException("Could not find assessment with tag $deletedTag to mark as deactivated")
         }
 
         tagToNewAssessment.putAll(newAssessments)
-        tagToNewAssessment.putAll(deletedAssessments)
+        deactivedAssessments.addAll(deletedAssessments)
     }
 
     private fun upload(): List<Assessment> {
