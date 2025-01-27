@@ -2,7 +2,6 @@
 type: open
 tags:
   - New Assessment
-  - Additional Assessment
 points: 1
 seconds: 300
 ---
