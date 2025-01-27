@@ -2,7 +2,7 @@
 type: multiple-choice
 
 tags:
-- Java
+- Java Developer
 points: 1 
 seconds: 120
 ---
