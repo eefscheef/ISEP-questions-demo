@@ -2,7 +2,7 @@
 tags:
   - Backend Developer
   - System Design
-  - Additional Assessment
+  - Java Developer
 language: Java
 type: coding
 code: Main.java
