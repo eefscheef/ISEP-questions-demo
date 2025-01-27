@@ -29,20 +29,21 @@ jobs:
         run: |
           # Run the script to parse the git diff output
           git_diff_output=$(git diff --name-status HEAD^ HEAD)
-          
+
           # Initialize empty lists for added, updated, and deleted files
           added_files=()
           updated_files=()
           deleted_files=()
           config_flag=""
-          
+
           # Process each line of the git diff output
           while IFS=$'\t' read -r status filename; do
             if [[ "$filename" == "config.yaml" ]]; then
               config_flag="--config"
             fi
-          
-            if [[ "$filename" == questions/* ]]; then
+
+            # Only process .md files in questions directory and subdirectories
+            if [[ "$filename" == questions/**/*.md || "$filename" == questions/*.md ]]; then
               case "$status" in
                 A)
                   added_files+=("'$filename'")
@@ -56,12 +57,12 @@ jobs:
               esac
             fi
           done <<< "$git_diff_output"
-          
+
           # Join the arrays into space-separated strings
           added_files=$(IFS=' '; echo "${added_files[*]}")
           updated_files=$(IFS=' '; echo "${updated_files[*]}")
           deleted_files=$(IFS=' '; echo "${deleted_files[*]}")
-          
+
           # Set the output variables for the GitHub Action
           echo "added_files=$added_files" >> $GITHUB_ENV
           echo "updated_files=$updated_files" >> $GITHUB_ENV
