@@ -71,6 +71,9 @@ class AssessmentUpdater(
     }
 
     private fun upload(): List<Assessment> {
+        deactivedAssessments.forEach { assessment ->
+            assessment.latest = null
+        }
         queryExecutor.mergeEntities(deactivedAssessments.toList())
         queryExecutor.flush() // Flush here so deactivated assessment.latest doesn't violate unique constraint with new assessments.latest
         queryExecutor.persistEntities(frontmatterToNewAssignment.values.toList())
@@ -236,7 +239,7 @@ class AssessmentUpdater(
     }
 
     private fun Assessment.copyWithoutCloningAssignments(): Assessment {
-        this.latest = null // copied assignment is no longer latest
+//        this.latest = null
         deactivedAssessments.add(this)
         val newAssessment = Assessment(
             tag = this.tag,
