@@ -2,6 +2,7 @@
 type: multiple-choice
 tags:
   - New Assessment
+  - Additional Assessment
 points: 1
 seconds: 20
 ---
