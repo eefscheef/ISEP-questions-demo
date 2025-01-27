@@ -2,7 +2,6 @@ package ut.isep
 
 import org.hibernate.Session
 import ut.isep.management.model.entity.BaseEntity
-import java.util.function.Function
 
 object TestQueryHelper {
     inline fun <reified T> fetchAll(session: Session): List<T> {
@@ -12,11 +11,40 @@ object TestQueryHelper {
         return session.createQuery(query).resultList
     }
 
-    inline fun <reified T : BaseEntity<*>> fetchSingle(session: Session): T? {
+    inline fun <reified T> fetchAll(
+        session: Session,
+        noinline filter: ((T) -> Boolean)? = null
+    ): List<T> {
         val cb = session.criteriaBuilder
         val query = cb.createQuery(T::class.java)
-        query.select(query.from(T::class.java))
-        return session.createQuery(query).singleResultOrNull
+        val root = query.from(T::class.java)
+        query.select(root)
+
+        // If a filter is provided, apply it
+        val result = session.createQuery(query).resultList
+        return if (filter != null) {
+            result.filter { filter(it) } // Apply filter condition
+        } else {
+            result
+        }
+    }
+
+    inline fun <reified T : BaseEntity<*>> fetchSingle(
+        session: Session,
+        noinline filter: ((T) -> Boolean)? = null
+    ): T? {
+        val cb = session.criteriaBuilder
+        val query = cb.createQuery(T::class.java)
+        val root = query.from(T::class.java)
+        query.select(root)
+
+        // If a filter is provided, apply it
+        val result = session.createQuery(query).resultList
+        return if (filter != null) {
+            result.find { filter(it) } // Apply filter condition
+        } else {
+            result.singleOrNull()
+        }
     }
 
     fun <T : BaseEntity<*>> persistEntity(entity: T, session: Session): T {
@@ -30,4 +58,6 @@ object TestQueryHelper {
             throw exception
         }
     }
+
+
 }
