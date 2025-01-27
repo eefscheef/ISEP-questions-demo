@@ -1,7 +1,7 @@
 ---
 type: open
 tags:
-  - New Assessment
+  - Python Developer
 points: 1
 seconds: 300
 ---
