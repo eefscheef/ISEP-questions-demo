@@ -29,6 +29,9 @@ class AssessmentUpdater(
             if (config != null) {
                 updateConfig(config)
             }
+            if (modifiedFilenames.isNotEmpty()) {
+                modifyAssignments(parseAssignments(modifiedFilenames))
+            }
             if (addedFilenames.isNotEmpty()) {
                 addAssignments(parseAssignments(addedFilenames))
             }
@@ -37,9 +40,6 @@ class AssessmentUpdater(
                     QuestionIDUtil.parseQuestionID(filename)
                 }
                 deleteAssignments(ids)
-            }
-            if (modifiedFilenames.isNotEmpty()) {
-                modifyAssignments(parseAssignments(modifiedFilenames))
             }
             upload()
         }
