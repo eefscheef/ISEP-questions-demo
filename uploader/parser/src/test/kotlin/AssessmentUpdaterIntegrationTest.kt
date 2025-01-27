@@ -274,7 +274,7 @@ class AssessmentUpdaterIntegrationTest : BaseIntegrationTest() {
         TestQueryHelper.persistEntity(assessmentA, session)
         TestQueryHelper.persistEntity(assessmentB, session)
 
-        val existingID = TestQueryHelper.persistEntity(existingAssignment, session).id
+        TestQueryHelper.persistEntity(existingAssignment, session).id
         session.close()
 
         // Arrange: Prepare the new assignment and updated tags
