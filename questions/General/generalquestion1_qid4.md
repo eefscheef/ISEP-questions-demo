@@ -2,6 +2,7 @@
 type: multiple-choice
 tags:
   - Backend Developer
+  - Additional Assessment
 points: 2
 seconds: 30
 ---
