@@ -4,7 +4,7 @@ type: multiple-choice
 tags:
 - Java Developer
 points: 1 
-seconds: 120
+seconds: 600
 ---
 
 What is the purpose of the final keyword in Java when applied to a class?

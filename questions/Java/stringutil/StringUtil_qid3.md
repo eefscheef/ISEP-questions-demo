@@ -6,7 +6,7 @@ language: Java
 type: coding
 code: Main.java
 points: 3
-seconds: 300
+seconds: 1200
 test: Test.java
 secret-test: SecretTest.java
 ---
