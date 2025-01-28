@@ -52,7 +52,7 @@ private fun validateAll() {
 }
 
 fun handleValidateCommand(args: List<String>) {
-    val processEntireRepo = args[0] == "--all" || args[1] == "-a"
+    val processEntireRepo = args[0] == "--all" || args[0] == "-a"
     if (processEntireRepo && args.size > 1) { // Can't provide filenames with --all flag set
         printUsageAndExit()
     }
