@@ -5,7 +5,7 @@ tags:
 - Backend Developer
 - System Design
 points: 1 
-seconds: 300
+seconds: 3000
 ---
 
 What is the difference between a monolithic architecture and a microservice oriented architecture?
