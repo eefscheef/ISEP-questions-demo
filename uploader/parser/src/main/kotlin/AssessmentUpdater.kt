@@ -76,6 +76,10 @@ class AssessmentUpdater(
         }
         queryExecutor.mergeEntities(deactivedAssessments.toList())
         queryExecutor.flush() // Flush here so deactivated assessment.latest doesn't violate unique constraint with new assessments.latest
+        frontmatterToNewAssignment.keys.forEach { frontmatter ->
+            val strippedFilename = QuestionIDUtil.removeQuestionIDIfPresent(frontmatter.originalFilePath)
+            File(frontmatter.originalFilePath).renameTo(File(strippedFilename))
+        }
         queryExecutor.persistEntities(frontmatterToNewAssignment.values.toList())
         return queryExecutor.mergeEntities(tagToNewAssessment.values.toList())
     }
