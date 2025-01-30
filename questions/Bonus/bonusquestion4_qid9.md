@@ -4,7 +4,7 @@ tags:
   - Backend Developer
   - New Assessment
 points: 1
-seconds: 20
+seconds: 25
 ---
 What is the correct option?
 
