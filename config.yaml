@@ -1,9 +1,4 @@
-tag-options:
+assessments:
   - "Backend Developer"
   - "System Design"
   - "New Assessment"
-
-question-options:
-  - "MultipleChoice"
-  - "Open"
-  - "Coding"
