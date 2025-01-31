@@ -5,10 +5,8 @@ maintainers should have access to this repository to add/change questions. Be aw
 proper repository structure is given down below followed by an example of a valid `questions.md` formatted file.
 
 Multiple-Choice and open questions should  be placed in the `questions.md` files in the root of a specific topic, such as 'General' or 'Database' in the example down below. Specific questions 
-regarding a coding question should be placed inside the `question<nr>` directory in the `question.md` file.
-
-In the file `config.yaml`, **tag**, **assessment**, and **question** options are stored which are allowed to be used in the markdown files.
-
+regarding a coding question should be placed in subdirectory, with a markdown question file pointing to the relevant code files.
+In the file `config.yaml`, **assessment**, is stored, which defines all assessments that can be referred to in question files.
 Example repository structure: 
 ```txt
 REPOSITORY_ROOT
@@ -16,21 +14,12 @@ REPOSITORY_ROOT
 │   ├── question1.md
 │   └── another-question.md
 ├── Database
-│   ├── questionX.md
-│   └── code
-│       ├── SQL
-│       │   ├── question1
-│       │   │   ├── question.md
-│       │   │   ├── src
-│       │   │   ├── images
-│       │   │   ├── test
-│       │   │   └── answers 
-│       │   └── question2
-│       │   │   ├── ...
-│       │   │   ...
-│       └── Java
-│           ├── ...
-│           ...
+│   ├── question.md
+│   └── javaCodingQuestion
+│       ├── question.md
+│       ├── startCode.java
+│       ├── test.Java
+│       └── secretTest.java
 ├── Encryption
 │   └── ... 
 ├── config.yaml
@@ -41,54 +30,52 @@ Example file formatting of (multiple-choice question) `your-question-name.md`:
 ```markdown
 ---
 type: multiple-choice
-tags:
-  - Frontend Developer
-  - Backend Developer
----
-What is the difference between a stack and a queue?
 
-- [ ] A stack is FIFO, a queue is LIFO.
-- [x] A stack is LIFO, a queue is FIFO.
-- [ ] Both are FIFO.
-- [ ] Both are LIFO.
+tags:
+- Java Developer
+points: 1 
+seconds: 600
+---
+
+What is the purpose of the final keyword in Java when applied to a class?
+
+- [X] To prevent the class from being inherited
+- [ ] To create an immutable class
+- [ ] To make the class static
+- [ ] To define a constant value
 ```
 Example file formatting (open question) of `your-question-name.md`:
 ```markdown
 ---
 type: open
 tags:
-- Deezend
-- developer
-- Reee
+  - Java Developer
+points: 1
+seconds: 600
+reference-answer: |
+  ArrayList: Backed by a resizable array.
+  LinkedList: Uses a doubly-linked list.
 ---
-What is the difference between a stack and a queue?
+Explain the differences between ArrayList and LinkedList in Java. When would you use one over the other?
 ```
 
 Example file formatting (coding question) of `your-question-name.md`:
 ```markdown
 ---
-id: unique-question-id-247462  #Automatically generated ID for  database reference, do not modify!
-type: Coding
-
 tags:
-  - Frontend Developer
+  - Python Developer
+language: Python
+type: coding
+code: palindrome.py
+points: 3
+seconds: 600
+test: test_palindrome.py
+secret-test: secret_test_palindrome.py
+reference-code: reference_palindrome.py
 ---
-description: Improve the following code file?
 
-... TODO: add the right information
+Implement a Function to Check for Palindrome
 ```
 
-Note that after successful transfer of the questions to the database, and ID is injected into the frontmatter portion of 
-the question file. This ID is used as a primary key in the questions database, and should therefore not be modified.
-
-```markdown
----
-id: unique-question-id-35842 #Automatically generated ID for database reference, do not modify!
-type: open
-tags:
-- Deezend
-- developer
-- Reee
----
-What is the difference between a stack and a queue?
-```
+Note that after successful transfer of the questions to the database, and ID is injected into the filename of a question as an appended _qid{id}.md
+This ID is used as a primary key in the questions database, and should therefore not be modified.
