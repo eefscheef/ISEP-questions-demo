@@ -34,6 +34,9 @@ always commit any filename changes created by upload or reset, and then call the
 latest commit. If you do not do this, the created Assessment entities will have their commitHash set to 
 NULL and their assignments will be unreachable.
 
+`upload`, `reset`, and `hash` calls require the environment variables DB_USERNAME, DB_PASSWORD, and optionally JDBC_URL 
+to point to custom database
+
 # Shared-entities
 
 This contains the JPA entities that can be used to interface with the database. The question file parser also lives
