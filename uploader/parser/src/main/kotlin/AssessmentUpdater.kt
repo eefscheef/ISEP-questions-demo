@@ -46,7 +46,7 @@ class AssessmentUpdater(
         tagToNewAssessment.clear()
         frontmatterToNewAssignment.clear()
         deactivedAssessments.clear()
-        queryExecutor.apply {
+        queryExecutor.withTransaction {
             if (config != null) {
                 updateConfig(config)
             }

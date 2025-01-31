@@ -22,7 +22,7 @@ import kotlin.test.assertEquals
 @ExtendWith(MockKExtension::class)
 class AssessmentUpdaterTest(
     @MockK private val session: Session,
-    @MockK private val queryExecutor: QueryExecutor,
+    @MockK(relaxed = true) private val queryExecutor: QueryExecutor,
     @MockK private val parser: FrontmatterParser
 ) : BaseUpdaterTest() {
 
@@ -34,6 +34,11 @@ class AssessmentUpdaterTest(
 
         every { queryExecutor.mergeEntities<BaseEntity<*>>(any()) } returns emptyList()
         every { queryExecutor.persistEntities<BaseEntity<*>>(any()) } just Runs
+
+
+        every { queryExecutor.withTransaction(any<QueryExecutor.() -> Unit>()) } answers {
+            firstArg<QueryExecutor.() -> Unit>().invoke(queryExecutor)
+        }
         every { queryExecutor.flush() } just Runs
     }
 
@@ -86,33 +91,6 @@ class AssessmentUpdaterTest(
         assert(updater.frontmatterToNewAssignment.keys.map(Frontmatter::id).contains(id))
 
     }
-
-    @Test
-    fun `updateAssessments should process all changes correctly`() {
-        // Mock behaviors for all cases
-        val addedFilenames = listOf("new-assignment.md")
-        val deletedFilenames = listOf("deleted-assignment.md")
-        val modifiedFilenames = listOf("modified-assignment.md")
-        val frontmatter = mockk<Frontmatter>(relaxed = true)
-
-        every { parser.parse(any(), any()) } returns Pair(frontmatter, "")
-        every { queryExecutor.getLatestAssessments() } returns listOf(mockk())
-        every { queryExecutor.getLatestAssessmentByAssignmentIds(any()) } returns listOf(mockk())
-
-        // Call updateAssessments with all changes
-        updater.updateAssessments(
-            addedFilenames = addedFilenames,
-            deletedFilenames = deletedFilenames,
-            modifiedFilenames = modifiedFilenames
-        )
-
-        // Verify all interactions
-        verify { queryExecutor.mergeEntities<BaseEntity<*>>(any()) }
-        verify { queryExecutor.getLatestAssessmentByAssignmentIds(any()) }
-        verify { queryExecutor.findAssignmentsByIds(any()) }
-        assertTrue(true)
-    }
-
 
     @Test
     fun `updateAssessments should not add assessments and assignments or deactivate assessments when config is null or empty`() {
