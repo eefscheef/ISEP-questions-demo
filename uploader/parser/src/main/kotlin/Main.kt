@@ -119,13 +119,13 @@ fun handleResetCommand() {
     val databaseConfig = DatabaseConfiguration(AzureDatabaseConfigProvider())
     val dataSource = databaseConfig.createDataSource()
     val sessionFactory = databaseConfig.createSessionFactory(dataSource)
-    val session = sessionFactory.openSession()
-    val queryExecutor = QueryExecutor(session)
-    queryExecutor.withTransaction {
-        clearDatabase()
-        persistEntities(assessmentProcessor.parseAll())
+    sessionFactory.openSession().use {session ->
+        val queryExecutor = QueryExecutor(session)
+        queryExecutor.withTransaction {
+            clearDatabase()
+            persistEntities(assessmentProcessor.parseAll())
+        }
     }
-    queryExecutor.closeSession()
 }
 
 fun handleUploadCommand(arguments: List<String>) {
@@ -199,12 +199,9 @@ fun upload(arguments: Arguments) {
     }
     val databaseConfig = DatabaseConfiguration(AzureDatabaseConfigProvider())
     val dataSource = databaseConfig.createDataSource()
-    val sessionFactory = databaseConfig.createSessionFactory(dataSource)
-
-
-    val updater = AssessmentUpdater(sessionFactory)
-    println("Uploading changes:")
-
-
-    updater.updateAssessments(addedFiles, deletedFiles, updatedFiles, changedConfig)
+    databaseConfig.createSessionFactory(dataSource).openSession().use { session ->
+        val updater = AssessmentUpdater(session)
+        updater.updateAssessments(addedFiles, deletedFiles, updatedFiles, changedConfig)
+        println("Uploading changes:")
+    }
 }
