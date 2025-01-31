@@ -9,7 +9,7 @@ class AssessmentParser(private val questionDir: File, private val parser: Questi
 
     // Save Assignment objects here so all Assessment's assignment point to the same object if they share an assignment
     // This prevents us from persisting 2 different Assignments when persisting shared Assignments through cascading
-    // Assessment persists
+    // persist(Assessment) calls
     private val pathToAssignment = mutableMapOf<String, Assignment>()
 
     private fun getQuestionDirectories(): Array<File> {

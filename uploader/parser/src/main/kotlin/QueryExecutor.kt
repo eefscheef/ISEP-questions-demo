@@ -147,7 +147,4 @@ class QueryExecutor(private val currentSession: Session) {
     }
 
     fun flush() = currentSession.flush()
-
-    fun closeSession() = currentSession.close()
-
 }

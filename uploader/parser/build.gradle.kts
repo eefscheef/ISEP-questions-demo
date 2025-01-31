@@ -19,6 +19,7 @@ dependencies {
     implementation("org.hibernate.orm:hibernate-core:6.6.3.Final")
     implementation("ch.qos.logback:logback-classic:1.5.12")
     implementation(project(":shared-entities"))
+    testImplementation("io.mockk:mockk:1.13.16")
     testImplementation("org.testcontainers:testcontainers:1.20.4")
     testImplementation("org.testcontainers:postgresql:1.20.4")
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.11.3")
