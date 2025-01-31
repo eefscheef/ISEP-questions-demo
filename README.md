@@ -79,3 +79,12 @@ Implement a Function to Check for Palindrome
 
 Note that after successful transfer of the questions to the database, and ID is injected into the filename of a question as an appended _qid{id}.md
 This ID is used as a primary key in the questions database, and should therefore not be modified.
+
+# Pipelines
+This repository contains two workflows: 
+### parse-updated-questions
+This workflow runs on Pull Request to main. Checks all the changed question files to see if they can be parsed by 
+the QuestionParser in uploader/shared-entities. Fails if there is a parse error.
+## upload-questions-update-ids
+This workflow runs on successful PR to main (commit). It updates the database with the modified assignments and assessments.
+See more details in the [Uploader README](uploader/parser/README.md).
