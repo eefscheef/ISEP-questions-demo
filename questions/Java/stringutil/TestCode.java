@@ -1,11 +1,11 @@
-import org.junit.Test;
-import static org.junit.Assert.*;
+import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestCode {
 
     @Test
     public void testReverse() {
-        assertEquals("dlroW olleH", StringUtil.reverse("Hello World"));
+        assertEquals("dlroW olleH", Code.reverse("Hello World"));
     }
 
 }
