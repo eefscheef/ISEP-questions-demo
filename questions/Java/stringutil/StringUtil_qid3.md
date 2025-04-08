@@ -4,11 +4,11 @@ tags:
   - Java Developer
 language: Java
 type: coding
-code: Main.java
+code: StringUtil.java
 points: 3
 seconds: 1200
-test: Test.java
-secret-test: SecretTest.java
+test: StringUtilTest.java
+secret-test: StringUtilSecretTest.java
 ---
 
 Reverse a String
