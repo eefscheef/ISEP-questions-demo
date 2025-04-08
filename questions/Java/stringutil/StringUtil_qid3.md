@@ -7,7 +7,7 @@ type: coding
 code: Code.java
 points: 3
 seconds: 1200
-test: Test.java
+test: TestCode.java
 secret-test: SecretTest.java
 ---
 
