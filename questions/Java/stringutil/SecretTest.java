@@ -1,16 +1,16 @@
-import org.junit.Test;
-import static org.junit.Assert.*;
+import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class SecretTest {
 
     @Test
     public void testReverseEmptyString() {
-        assertEquals("", StringUtil.reverse(""));
+        assertEquals("", Code.reverse(""));
     }
 
     @Test
     public void testReverseSingleCharacter() {
-        assertEquals("a", StringUtil.reverse("a"));
+        assertEquals("a", Code.reverse("a"));
     }
 
 }
