@@ -1,7 +1,7 @@
 import org.junit.Test;
 import static org.junit.Assert.*;
 
-public class StringUtilSecretTest {
+public class SecretTest {
 
     @Test
     public void testReverseEmptyString() {

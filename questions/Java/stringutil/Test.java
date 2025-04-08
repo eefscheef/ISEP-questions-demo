@@ -1,7 +1,7 @@
 import org.junit.Test;
 import static org.junit.Assert.*;
 
-public class StringUtilTest {
+public class Test {
 
     @Test
     public void testReverse() {
